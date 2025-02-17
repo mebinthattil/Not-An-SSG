@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&family=Inter:wght@400;700&display=swap');
+
+body {
+    background-color: #121212;
+    color: #E0E0E0;
+    font-family: 'Inter', sans-serif;
+    max-width: 800px;
+    margin: 40px auto;
+    line-height: 1.8;
+    padding: 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: #4b5ae0;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 2rem;
+    border-bottom: 2px solid #3A9AD9;
+    padding-bottom: 5px;
+}
+
+h2 {
+    font-size: 1.5rem;
+    color: #3A9AD9;
+}
+
+a {
+    color: #0042e8;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+/* TODO: syntax highlighting */
+
+pre {
+    background: #1E1E1E;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 14px;
+}
+
+code {
+    font-family: 'Roboto Mono', monospace;
+    background: #1E1E1E;
+    padding: 2px 5px;
+    border-radius: 3px;
+    color: #7ecb9a;
+}
+
+ul, ol {
+    margin-left: 25px;
+    color: #CCCCCC;
+    font-family: 'Roboto Mono', monospace;
+}
+
+ul li::marker, ol li::marker {
+    color: #3A9AD9;
+    font-weight: bold;
+}
+
+
+blockquote {
+    border-left: 3px solid #3A9AD9;
+    padding-left: 12px;
+    color: #DDDDDD;
+    margin: 10px 0;
+    font-style: italic;
+}
+
+p {
+    font-size: 1.1rem;
+    color: #CCCCCC;
+    font-family: 'Roboto Mono', monospace;
+}
