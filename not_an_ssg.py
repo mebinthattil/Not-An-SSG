@@ -1,13 +1,8 @@
-'''
-This is not meant to be a standalone ssg, this is the ssg implimentation part for my website
-if you want to use it, disable all the R2-S3 bucket integrations, too lazy to cleanup now, shall do it later maybe
-'''
-
 import markdown
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 import os
-#from r2_bucket import upload, get_bucket_contents
+from r2_bucket import upload, get_bucket_contents
 
 def get_images_all(relative_path = ''):
     with os.scandir(relative_path+"templates/assets/img") as images:
@@ -15,11 +10,17 @@ def get_images_all(relative_path = ''):
         return [relative_path+'templates/assets/img/'+(image.name) for image in list_with_posix_scan_iterator] 
     
 def image_name_cleanup(relative_path = ''):
-    for image in get_images_all():
-        if " "in image:
-            os.rename(relative_path+image, (relative_path+image).replace(" ","_"))
-        if "\u202f" in image:
-            os.rename(relative_path+image, (relative_path+image).replace("\u202f","_"))
+    try:
+      for image in get_images_all():
+          if " "in image:
+              os.rename(relative_path+image, (relative_path+image).replace(" ","_"))
+          if "\u202f" in image:
+              os.rename(relative_path+image, (relative_path+image).replace("\u202f","_"))
+          if "%20" in image:
+              os.rename(relative_path+image, (relative_path+image).replace("\u202f","_"))
+    except:
+        print("Error, send for re-build")
+            
 
 def images_to_upload():
     prev_bucket_contents = ['templates/assets/img/'+ image_name for image_name in get_bucket_contents()]
