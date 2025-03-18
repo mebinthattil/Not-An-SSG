@@ -33,16 +33,14 @@ def images_to_upload():
 class DefaultImageSizeProcessor(Treeprocessor):
     def run(self, root):
         for img in root.iter('img'):  # Iterate over all <img> elements
-            # Change the image filename to 'hello.png' while keeping the original path
-            #cleaning up image names
-            image_name_cleanup()
+            image_name_cleanup() #cleaning up image names - replace whitespaces with hiphen
 
             #uploading images
             for image in images_to_upload():
                 print(f"Uploading -> {image} right now\n\n")
                 upload(image)
             cleaned_name = img.get('src').split('/')[-1]
-            img.set('src', f'https://mebin.shop/{cleaned_name}')
+            img.set('src', f'https://your-amazing-cdn.com/{cleaned_name}')
 
             # Set default width and height if not specified
             if 'width' not in img.attrib:
@@ -62,7 +60,7 @@ class DefaultImageSizeExtension(Extension):
 
 
 #reading default css
-with open('./templates/assets/css/articles_css.css', 'r') as file:
+with open('./articles_css.css', 'r') as file:
     defaultcss = file.read()
 
 def prettify(markdown_content,css = defaultcss):

@@ -1,3 +1,8 @@
+/*
+This is the base css stylesheet for my blog page.
+Either replace this with your css sheet or create another one and pass it as an argument to the ssg
+*/
+
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&family=Inter:wght@400;700&display=swap');
 
 body {

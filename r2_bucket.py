@@ -1,15 +1,12 @@
 import boto3
 import json
-
-#reading the access keys
-with open("secrets.json","r") as file:
-    secrets = json.load(file)
+import os
 
 # Cloudflare R2 Configuration
-R2_ACCESS_KEY_ID = secrets["R2_ACCESS_KEY_ID"]
-R2_SECRET_ACCESS_KEY = secrets["R2_SECRET_ACCESS_KEY"]
-R2_BUCKET_NAME = secrets["R2_BUCKET_NAME"]
-R2_ACCOUNT_ID = secrets["R2_ACCOUNT_ID"]
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
 R2_ENDPOINT_URL = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
 # Create S3 client
@@ -25,7 +22,7 @@ def upload(file_path):
         # Upload file to R2
         file_key = (file_path.split('/')[-1])
         s3.upload_file(file_path, R2_BUCKET_NAME, file_key)
-        print(f"File uploaded successfully: https://mebin.shop/{file_key}")
+        print(f"File uploaded successfully: https://your-cdn.com/{file_key}")
 
     except Exception as e:
         print(f"Error uploading file: {e}")
