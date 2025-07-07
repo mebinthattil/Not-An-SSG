@@ -14,17 +14,23 @@ def setup_cli():
     if use_storage_bucket == 'y':
         print("\nPlease provide your storage bucket details. Info is stored in .env file locally.")
         bucket_name = input("Bucket Name: ")
-        endpoint_url = input("Endpoint URL: ")
+        account_id = input("Account ID: ")
         access_key_id = input("Access Key ID: ")
         secret_access_key = input("Secret Access Key: ")
+        region_name = input("Region Name: ")
+        endpoint_url = input("Endpoint URL: ")
+        cdn_url = input("CDN URL (eg. https://mebin.shop): ")
 
         with open('.env', 'w') as f:
             f.write(f"STORAGE_BUCKET_NAME={bucket_name}\n")
-            f.write(f"STORAGE_ENDPOINT_URL={endpoint_url}\n")
+            f.write(f"STORAGE_ACCOUNT_ID={account_id}\n")
             f.write(f"STORAGE_ACCESS_KEY_ID={access_key_id}\n")
             f.write(f"STORAGE_SECRET_ACCESS_KEY={secret_access_key}\n")
-        
+            f.write(f"STORAGE_ENDPOINT_URL={endpoint_url}\n")
+            f.write(f"STORAGE_REGION_NAME={region_name}\n")
+            f.write(f"CDN_URL={cdn_url}\n")
         print("\nStorage bucket configuration saved to .env file. 👍🏻")
+
     else:
         print("\nSkipping storage bucket configuration.")
         if os.path.exists('.env'):
@@ -43,14 +49,14 @@ def setup_cli():
         
     elif set_img_dimensions == 'n':
         print("\nSkipping image dimensions configuration.")
-        default_height = 500
-        default_width = 800
+        default_height = "500"
+        default_width = "800"
 
     else:
         print("\nInvalid input. Please enter 'y' or 'n'.")
         return  
     
-    if default_height.isnumeric() and default_width.isnumeric():
+    if default_height.isdigit() and default_width.isdigit():
             config['image_dimensions'] = {
                 'width': int(default_width),
                 'height': int(default_height)}
