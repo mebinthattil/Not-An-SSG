@@ -2,7 +2,21 @@ import markdown
 import os
 import ui_components
 from pygments.formatters import HtmlFormatter
+from pygments.styles import get_all_styles
 
+def verbose_decorator(func):
+    def wrapper(*args, **kwargs):
+        verbose = kwargs.get('verbose', False)
+        result = func(*args, **kwargs)
+        if verbose:
+            if isinstance(result, (list, tuple, dict)):
+                for item in result:
+                    print(item)
+            else:
+                print(result)
+        
+        return result
+    return wrapper
 
 
 def render(markdown_content,css = None):
@@ -19,7 +33,8 @@ def render(markdown_content,css = None):
 
 
 # === CSS RELATED FUNCTIONS ===
-def generate_theme_css(theme_name='monokai'):
+@verbose_decorator
+def generate_theme_css(theme_name='monokai', verbose = False):
     pre_text = "\n/* Start syntax highlighting for code fences */\n"
     post_text = "\n/* End syntax highlighting for code fences */"
     formatter = HtmlFormatter(style=theme_name)
@@ -35,13 +50,14 @@ def write_stylsheet(css_content, path_to_stylesheet = "./articles_css.css", writ
         func = getattr(file, write_mode)
         func(css_content)
 
-def set_theme(style_sheet_path, theme_name):
+@verbose_decorator
+def set_theme(style_sheet_path, theme_name, verbose = False):
     css = remove_theme(style_sheet_path)
     css_generated = generate_theme_css(theme_name).splitlines(keepends=True)
-    print(css_generated)
     write_stylsheet(css + css_generated, style_sheet_path, write_mode="writelines")
-    
-def remove_theme(sytle_sheet_path) -> str: # Removes the theme and also returns the remaining css contents
+
+@verbose_decorator    
+def remove_theme(sytle_sheet_path, verbose = False) -> str: # Removes the theme and also returns the remaining css contents
     css = read_stylsheet(sytle_sheet_path, read_mode="readlines")
     new_css, read_flag = [], True
 
@@ -57,16 +73,21 @@ def remove_theme(sytle_sheet_path) -> str: # Removes the theme and also returns 
     write_stylsheet(new_css, sytle_sheet_path, write_mode="writelines")
     return new_css
 
+@verbose_decorator
+def list_themes(verbose = False):
+    return list(get_all_styles())
+
+list_themes(verbose=True)
 
 f = open("demo_comprehensive.md","r")
 markdown_content = f.read()
 f.close()
 
-f = open("generated10.html","w")
+f = open("generated.html","w")
 f.write(render(markdown_content))
 f.close()
 
 
 #print(generate_theme_css())
-#set_theme("./articles_css.css", "dracula")
+set_theme("./articles_css.css", "stata-dark")
 #remove_theme("./articles_css.css")
