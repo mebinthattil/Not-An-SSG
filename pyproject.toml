@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.37.10",
     "markdown>=3.7",
+    "pygments>=2.18.0",
 ]
