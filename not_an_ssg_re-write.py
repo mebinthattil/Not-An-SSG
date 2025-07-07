@@ -4,6 +4,7 @@ import ui_components
 from pygments.formatters import HtmlFormatter
 from pygments.styles import get_all_styles
 
+
 def verbose_decorator(func):
     def wrapper(*args, **kwargs):
         verbose = kwargs.get('verbose', False)
@@ -31,6 +32,24 @@ def render(markdown_content,css = None):
 
     return output_html
 
+def serve(output_html_path = '/generated.html', port = 6969, open_browser = True):
+    import http.server
+    import webbrowser
+
+    class SimpleHTMLServer(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/':
+                self.path = output_html_path
+            return super().do_GET()
+
+    server = http.server.HTTPServer(("", port), SimpleHTMLServer)
+    if open_browser:
+        webbrowser.open(f"http://localhost:{port}")
+    else:
+        print(f"Serving on http://localhost:{port}")
+    server.serve_forever()
+
+serve()
 
 # === CSS RELATED FUNCTIONS ===
 @verbose_decorator
@@ -89,5 +108,5 @@ f.close()
 
 
 #print(generate_theme_css())
-set_theme("./articles_css.css", "stata-dark")
+#set_theme("./articles_css.css", "stata-dark")
 #remove_theme("./articles_css.css")
