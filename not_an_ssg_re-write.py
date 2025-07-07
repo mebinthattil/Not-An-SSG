@@ -10,7 +10,7 @@ def render(markdown_content,css = None):
         css = read_stylsheet()
     output_html = ui_components.html_header_with_stylesheet(css)
 
-    output_html += markdown.markdown(markdown_content, extensions=['fenced_code', 'codehilite', 'nl2br'])
+    output_html += markdown.markdown(markdown_content, extensions=['fenced_code', 'codehilite', 'nl2br', 'tables'])
 
     output_html += ui_components.not_an_ssg_footer()
     output_html += ui_components.return_home_btn("https://mebin.in")
@@ -58,7 +58,7 @@ def remove_theme(sytle_sheet_path) -> str: # Removes the theme and also returns 
     return new_css
 
 
-f = open("syntax_test.md","r")
+f = open("demo_comprehensive.md","r")
 markdown_content = f.read()
 f.close()
 
@@ -68,5 +68,5 @@ f.close()
 
 
 #print(generate_theme_css())
-set_theme("./articles_css.css", "dracula")
+#set_theme("./articles_css.css", "dracula")
 #remove_theme("./articles_css.css")
