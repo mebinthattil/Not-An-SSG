@@ -20,12 +20,13 @@ s3 = boto3.client(
     region_name=R2_REGION_NAME
 )
 
-def upload(file_path) -> str:
+def upload(file_path, verbose=False) -> str:
     try:
         # Upload file to R2
         file_key = (file_path.split('/')[-1])
         s3.upload_file(file_path, R2_BUCKET_NAME, file_key)
-        print(f"File uploaded successfully: {CDN_URL}/{file_key}")
+        if verbose:
+            print(f"File uploaded successfully: {CDN_URL}/{file_key}")
         return f"{CDN_URL}/{file_key}"
 
     except Exception as e:

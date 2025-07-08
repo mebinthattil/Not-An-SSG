@@ -1,8 +1,8 @@
-# Modern Technical Blog Theme Demo
+# Somewhat Modern Technical Blog Theme Demo
 
 This is a comprehensive demonstration of the modern, minimal dark theme designed for technical blogs. The theme features a clean design with excellent syntax highlighting and typography.
 
-## Typography & Headings
+## Typography & Heading
 
 ### Level 3 Heading
 #### Level 4 Heading
@@ -276,3 +276,10 @@ This theme combines modern design principles with excellent functionality for te
 - Responsive design for all devices
 - Comprehensive syntax highlighting
 - Clean, minimal aesthetic perfect for technical content
+
+
+**Testing Images**
+
+![Test Image](./templates/assets/img/board-361516_640.jpg)
+
+![Test Image](./templates/assets/img/test%20image.jpeg){width="200" height="200"}
