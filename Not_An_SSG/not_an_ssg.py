@@ -279,12 +279,31 @@ def read_stylsheet(path_to_stylesheet=None, read_mode="read"):
             func = getattr(file, read_mode)
             return func()
 
-def write_stylsheet(css_content, path_to_stylesheet=None, write_mode="write") -> None:
+def write_stylsheet(css_content, path_to_stylesheet, write_mode="write") -> None:
+    """
+    Write content to a stylesheet file.
+    
+    Note: path_to_stylesheet is required since package resources are read-only.
+    Use export_default_css() to create a writable copy of the default CSS first.
+    """
     if path_to_stylesheet is None:
-        path_to_stylesheet = os.path.join(SCRIPT_DIR, "articles_css.css")
+        raise ValueError("path_to_stylesheet is required. Package resources are read-only. "
+                        "Use export_default_css() to create a writable copy first.")
     with open(path_to_stylesheet, 'w') as file:
         func = getattr(file, write_mode)
         func(css_content)
+
+
+def export_default_css(output_path="articles_css.css"):
+    """
+    Export the default CSS to a file in the current directory.
+    
+    This creates a writable copy that can then be modified with set_theme().
+    """
+    css_content = read_stylsheet()  # Reads from package
+    with open(output_path, 'w') as f:
+        f.write(css_content)
+    return output_path
 
 @verbose_decorator
 def set_theme(style_sheet_path=None, theme_name="stata-dark", verbose=False):

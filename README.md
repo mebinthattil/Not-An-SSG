@@ -481,15 +481,17 @@ Contributions welcome! This project was built for personal use but has evolved t
 
 ## Changelog
 
-### v0.1.0
-- Initial release
-- Core markdown rendering
-- CLI interface
-- Theme support
-- Cloud storage integration
-- Live development server
-- Supports syntax highlighting
+### v0.2.0
+- Re-architect and optimize for python packaging preventing copying of src 
 
-### Plans for next release
+## Breaking changes
+
+### `write_stylesheet(css_content, path_to_stylesheet, write_mode)`:
+`path_to_stylesheet` can no longer take `None` value. `path_to_stylesheet` is required and the default css cannot be used since package resources are read only.
+### Fix:
+Use export_default_css() to create a writable copy of the default CSS first.
+
+
+## Plans for next release
 - Support a batch rendering mode
 - Introduce file hashing to prevent unnecessary re-renders, reducing build time
