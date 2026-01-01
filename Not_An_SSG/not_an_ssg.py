@@ -1,7 +1,9 @@
-import os, sys
-import ui_components
+import os
+import sys
 import json
-from r2_bucket import upload, get_bucket_contents
+
+from . import ui_components
+from .r2_bucket import upload, get_bucket_contents
 import markdown
 from pygments.formatters import HtmlFormatter
 from pygments.styles import get_all_styles
@@ -197,10 +199,7 @@ def render(markdown_content, root_location="https://google.com", css=None, input
         css = read_stylsheet()
     config = load_config()
     
-    if SCRIPT_DIR not in sys.path:
-        sys.path.insert(0, SCRIPT_DIR)
-    import ui_components
-    
+     
     input_file_dir = None
     if input_file_path:
         input_file_dir = os.path.dirname(os.path.abspath(input_file_path))
