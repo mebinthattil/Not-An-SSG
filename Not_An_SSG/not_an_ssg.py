@@ -211,11 +211,27 @@ class DefaultImageSizeExtension(Extension):
 # === RENDER & SERVE ===
 
 def render(markdown_content, root_location="https://google.com", css=None, input_file_path=None, verbose=False):
+    """
+    Convert markdown content to styled HTML.
+    
+    Args:
+        markdown_content: The markdown text to render (string, not a file path).
+        root_location: URL for the home button.
+        css: Optional custom CSS string. Uses package default if None.
+        input_file_path: Path to source file (for relative image paths).
+        verbose: Enable verbose output.
+    
+    Returns:
+        Complete HTML string ready to be written to a file.
+    
+    Example usage:
+        html = render(open('post.md').read())
+        open('output.html', 'w').write(html)
+    """
     if css is None:
         css = read_stylsheet()
     config = load_config()
     
-     
     input_file_dir = None
     if input_file_path:
         input_file_dir = os.path.dirname(os.path.abspath(input_file_path))
@@ -231,7 +247,22 @@ def render(markdown_content, root_location="https://google.com", css=None, input
 
     return output_html
 
-def serve(output_html_path = '/generated.html', port = 6969, open_browser = True):
+def serve(output_html_path='/generated.html', port=6969, open_browser=True):
+    """
+    Start a local HTTP server to serve an HTML file.
+    
+    Args:
+        output_html_path: Path to the HTML file to serve (must start with /).
+        port: Port number for the server.
+        open_browser: Automatically open browser.
+    
+    Note:
+        The file must exist before calling serve(). This function serves
+        files from the current directory, not HTML content directly.
+    
+    Example:
+        serve('/output.html', port=8080)
+    """
     import http.server
     import webbrowser
 
@@ -411,7 +442,11 @@ Getting additional info on commands:
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # === RENDER COMMAND ===
-    render_parser = subparsers.add_parser('render', help='Render markdown file to HTML')
+    render_parser = subparsers.add_parser(
+        'render', 
+        help='Render markdown file to HTML',
+        description='Convert a markdown file to styled HTML. Example: not_an_ssg render blog.md -o blog.html'
+    )
     render_parser.add_argument('input', help='Input markdown file path')
     render_parser.add_argument('-o', '--output', default='generated.html',
                               help='Output HTML file path (default: generated.html)')
@@ -424,7 +459,11 @@ Getting additional info on commands:
                               help='Enable verbose output for debugging')
     
     # === SERVE COMMAND ===
-    serve_parser = subparsers.add_parser('serve', help='Start development server')
+    serve_parser = subparsers.add_parser(
+        'serve', 
+        help='Start development server',
+        description='Start a local HTTP server. Example: not_an_ssg serve -f /blog.html -p 8080'
+    )
     serve_parser.add_argument('-p', '--port', type=int, default=6969,
                              help='Server port (default: 6969)')
     serve_parser.add_argument('-f', '--file', default='/generated.html',
