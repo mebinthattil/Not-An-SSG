@@ -1,0 +1,2 @@
+[console_scripts]
+not_an_ssg = not_an_ssg.not_an_ssg:cli_main
