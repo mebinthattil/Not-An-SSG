@@ -744,10 +744,16 @@ def handle_themes_command(args):
     
     elif args.theme_action == 'remove':
         try:
+            stylesheet_path = args.stylesheet
+            if stylesheet_path is None:
+                # Export default CSS first, then remove theme from it (creating a writable copy; refer to README: Breaking Changes[1])
+                stylesheet_path = export_default_css()
+                if args.verbose:
+                    print(f"Created {stylesheet_path} from package defaults")
             if args.verbose:
-                print(f"Removing theme from {args.stylesheet}")
-            remove_theme(args.stylesheet, verbose=args.verbose)
-            print("Successfully removed theme from stylesheet")
+                print(f"Removing theme from {stylesheet_path}")
+            remove_theme(stylesheet_path, verbose=args.verbose)
+            print(f"Successfully removed theme from {stylesheet_path}")
         except Exception as e:
             print(f"Error removing theme: {e}")
             sys.exit(1)
