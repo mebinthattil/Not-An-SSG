@@ -33,7 +33,7 @@ from .not_an_ssg import (
     get_package_resource )
 from .r2_bucket import upload, get_bucket_contents
 
-__version__ = "0.2.0"
+__version__ = "2.0.0"
 __all__ = [
     "render",
     "serve",

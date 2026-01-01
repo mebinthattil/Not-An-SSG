@@ -5,8 +5,9 @@ __pycache__/
 .DS_Store
 config.json
 templates/
-Not_An_SSG/Not_An_SSG.egg-info/
-../Not_An_SSG.egg-info/
-./
-../build/
-../dist/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+

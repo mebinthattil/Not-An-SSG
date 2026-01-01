@@ -481,23 +481,59 @@ Contributions welcome! This project was built for personal use but has evolved t
 
 ## Changelog
 
-### v0.2.0
-- Re-architect and optimize for python packaging preventing copying of src 
+### v2.0.0
+- **Breaking**: Complete re-architecture for proper Python packaging
+- No longer copies source files to user's directory
+- Uses `importlib.resources` for package assets
+- SDK imports work cleanly: `from not_an_ssg import render, serve`
+- CLI command: `not_an_ssg`
+- Lazy S3 client initialization (no credentials needed at import time)
+- Added `export_default_css()` for theme customization
 
-## Breaking changes
+### v0.1.0
+- Initial release
+- Core markdown rendering
+- CLI interface
+- Theme support
+- Cloud storage integration
+- Live development server
+
+## Breaking Changes (v2.0.0)
 
 ### `write_stylesheet(css_content, path_to_stylesheet, write_mode)`:
-`path_to_stylesheet` can no longer take `None` value. `path_to_stylesheet` is required and the default css cannot be used since package resources are read only.
-### Fix:
-Use export_default_css() to create a writable copy of the default CSS first. 
+`path_to_stylesheet` can no longer be `None`. Package resources are read-only.
 
-### Remove `files_to_copy`, `files_exist()`, `_setup_user_files()`
-### Fix:
-No fix required, the functions within NAS should continue to work via imports, but these functions
-explicitly will no longer work if used anywhere.
+**Fix**: Use `export_default_css()` to create a writable copy first.
 
+### Removed `files_to_copy`, `files_exist()`, `_setup_user_files()`
+These internal functions are no longer needed. SDK imports work directly.
 
+## Developer Guide
 
-## Plans for next release
+### Building and Testing Locally
+
+```bash
+# 1. Build the wheel
+cd /path/to/Not-An-SSG
+pip install build
+python -m build
+
+# 2. Create a fresh test environment
+cd /tmp && mkdir ssg_test && cd ssg_test
+python3 -m venv .venv && source .venv/bin/activate
+
+# 3. Install from local wheel
+pip install /path/to/Not-An-SSG/dist/not_an_ssg-2.0.0-py3-none-any.whl
+
+# 4. Test SDK
+python -c "from not_an_ssg import render, serve; print('OK')"
+
+# 5. Test CLI
+not_an_ssg themes list
+echo "# Test" > test.md && not_an_ssg render test.md
+```
+
+## Plans for Next Release
 - Support a batch rendering mode
-- Introduce file hashing to prevent unnecessary re-renders, reducing build time
+- Introduce file hashing to prevent unnecessary re-renders
+

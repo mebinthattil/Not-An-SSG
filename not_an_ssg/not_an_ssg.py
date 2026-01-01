@@ -25,7 +25,7 @@ def get_package_resource(filename):
     Get a resource file from the installed package.
     This needs to be done to ensure compatibility, sometimes due to packaging we can't directly access files relatively.
     """
-    return package_files('Not_An_SSG') / filename
+    return package_files('not_an_ssg') / filename
 
 def verbose_decorator(func):
     def wrapper(*args, **kwargs):
