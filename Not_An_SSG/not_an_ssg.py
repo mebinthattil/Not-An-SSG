@@ -788,17 +788,9 @@ def handle_config_command(args):
             print("  Configuration file not found")
     
     elif args.config_action == 'setup':
-        print("Running setup wizard")
-        import subprocess
-        setup_py_path = os.path.join(SCRIPT_DIR, 'setup.py')
-        try:
-            subprocess.run([sys.executable, setup_py_path], check=True)
-        except subprocess.CalledProcessError:
-            print("Error: Failed to run setup.py")
-            sys.exit(1)
-        except FileNotFoundError:
-            print(f"Error: setup.py not found at {setup_py_path}")
-            sys.exit(1)
+        print("Running setup wizard...")
+        from .setup import setup_cli
+        setup_cli()
 
 
 def handle_images_command(args):
