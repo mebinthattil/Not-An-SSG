@@ -307,17 +307,29 @@ def export_default_css(output_path="articles_css.css"):
 
 @verbose_decorator
 def set_theme(style_sheet_path=None, theme_name="stata-dark", verbose=False):
+    """
+    Set syntax highlighting theme on a stylesheet.
+    
+    If style_sheet_path is None, exports default CSS to 'articles_css.css' in CWD first. (creating a writable copy; refer to README: Breaking Changes[1])
+    """
     if style_sheet_path is None:
-        style_sheet_path = os.path.join(SCRIPT_DIR, "articles_css.css")
-    css = remove_theme(style_sheet_path)
+        # Create writable copy of default CSS in current directory
+        style_sheet_path = export_default_css()
+        if verbose:
+            print(f"Created {style_sheet_path} from package defaults")
+    css = remove_theme(style_sheet_path, verbose=verbose)
     css_generated = generate_theme_css(theme_name).splitlines(keepends=True)
     write_stylsheet(css + css_generated, style_sheet_path, write_mode="writelines")
 
 @verbose_decorator    
-def remove_theme(sytle_sheet_path=None, verbose=False) -> str:  # Removes the theme and also returns the remaining css contents
-    if sytle_sheet_path is None:
-        sytle_sheet_path = os.path.join(SCRIPT_DIR, "articles_css.css")
-    css = read_stylsheet(sytle_sheet_path, read_mode="readlines")
+def remove_theme(style_sheet_path, verbose=False) -> list:
+    """
+    Remove syntax highlighting theme from a stylesheet.
+    
+    Returns the remaining CSS content as a list of lines.
+    Note: style_sheet_path is required since we need to write to it. (create a writable copy for css first; refer to README: Breaking Changes[1])
+    """
+    css = read_stylsheet(style_sheet_path, read_mode="readlines")
     new_css, read_flag = [], True
 
     for line in css:
@@ -329,7 +341,7 @@ def remove_theme(sytle_sheet_path=None, verbose=False) -> str:  # Removes the th
 
         if read_flag:
             new_css.append(line)
-    write_stylsheet(new_css, sytle_sheet_path, write_mode="writelines")
+    write_stylsheet(new_css, style_sheet_path, write_mode="writelines")
     return new_css
 
 @verbose_decorator
