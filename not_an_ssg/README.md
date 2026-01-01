@@ -350,18 +350,23 @@ from not_an_ssg import (
     generate_theme_css, 
     set_theme,
     get_images_all,
-    image_name_cleanup
+    image_name_cleanup,
+    export_default_css
 )
+
+# Export default CSS to create a writable copy (V2.0.0+)
+css_file = export_default_css('my_custom.css')
+print(f"Exported CSS to: {css_file}")
 
 # Custom CSS with theme
 custom_css = generate_theme_css('github-dark')
-set_theme(custom_css, 'github-dark')
+set_theme(css_file, 'github-dark')  # Now modifies the exported file
 
 # Render with custom options
 html = render(
     markdown_content,
     root_location="https://yourblog.com",
-    css=custom_css,
+    css=css_file,  # Use the exported CSS file path
     input_file_path="blog-post.md",
     verbose=True
 )
@@ -371,6 +376,35 @@ images = get_images_all('/path/to/project')
 image_name_cleanup('/path/to/project')
 
 ```
+
+### Working with Themes (V2.0.0+)
+
+```python
+from not_an_ssg import export_default_css, generate_theme_css, set_theme
+
+# Step 1: Export the default CSS to a writable location
+css_path = export_default_css('articles_css.css')
+
+# Step 2: Apply a theme to the exported CSS
+set_theme(css_path, 'monokai')
+
+# Step 3: Use the themed CSS for rendering
+from not_an_ssg import render
+
+with open('blog.md', 'r') as f:
+    content = f.read()
+
+html = render(
+    content,
+    css=css_path,
+    input_file_path='blog.md',
+    root_location='https://myblog.com'
+)
+
+with open('output.html', 'w') as f:
+    f.write(html)
+```
+
 
 ## Markdown Features
 
@@ -481,6 +515,15 @@ Contributions welcome! This project was built for personal use but has evolved t
 
 ## Changelog
 
+### v2.0.0
+- **Breaking**: Complete re-architecture for proper Python packaging
+- No longer copies source files to user's directory
+- Uses `importlib.resources` for package assets
+- SDK imports work cleanly: `from not_an_ssg import render, serve`
+- CLI command: `not_an_ssg`
+- Lazy S3 client initialization (no credentials needed at import time)
+- Added `export_default_css()` for theme customization
+
 ### v0.1.0
 - Initial release
 - Core markdown rendering
@@ -488,8 +531,17 @@ Contributions welcome! This project was built for personal use but has evolved t
 - Theme support
 - Cloud storage integration
 - Live development server
-- Supports syntax highlighting
 
-### Plans for next release
+## Breaking Changes (v2.0.0)
+
+### `write_stylesheet(css_content, path_to_stylesheet, write_mode)`:
+`path_to_stylesheet` can no longer be `None`. Package resources are read-only.
+
+**Fix**: Use `export_default_css()` to create a writable copy first.
+
+### Removed `files_to_copy`, `files_exist()`, `_setup_user_files()`
+These internal functions are no longer needed. SDK imports work directly.
+
+## Plans for Next Release
 - Support a batch rendering mode
 - Introduce file hashing to prevent unnecessary re-renders, reducing build time
