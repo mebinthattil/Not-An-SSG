@@ -5,14 +5,13 @@ with open("README.md", "r") as f:
 
 setup(
     name='not_an_ssg',
-    version='0.1.0',
+    version='2.0.0',
     author='Mebin',
     author_email='mail@mebin.in',
     url='https://github.com/mebinthattil/Not-An-SSG',
     packages=find_packages(),
     package_data={
-        'Not_An_SSG': [
-            'config.json',
+        'not_an_ssg': [
             'articles_css.css',
             'demo_comprehensive.md',
             'LICENSE',
@@ -28,7 +27,7 @@ setup(
         "importlib-resources>=1.3.0;python_version<'3.9'"],
     entry_points={
         'console_scripts': [
-            'not_an_ssg = Not_An_SSG:cli_main']},
+            'not_an_ssg = not_an_ssg:cli_main']},
     long_description=readme,
     long_description_content_type="text/markdown",
 )
