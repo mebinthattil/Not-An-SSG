@@ -25,7 +25,7 @@ def get_package_resource(filename):
     Get a resource file from the installed package.
     This needs to be done to ensure compatibility, sometimes due to packaging we can't directly access files relatively.
     """
-    return package_files('Not_An_SSG') / filename
+    return package_files('not_an_ssg') / filename
 
 def verbose_decorator(func):
     def wrapper(*args, **kwargs):
@@ -211,11 +211,27 @@ class DefaultImageSizeExtension(Extension):
 # === RENDER & SERVE ===
 
 def render(markdown_content, root_location="https://google.com", css=None, input_file_path=None, verbose=False):
+    """
+    Convert markdown content to styled HTML.
+    
+    Args:
+        markdown_content: The markdown text to render (string, not a file path).
+        root_location: URL for the home button.
+        css: Optional custom CSS string. Uses package default if None.
+        input_file_path: Path to source file (for relative image paths).
+        verbose: Enable verbose output.
+    
+    Returns:
+        Complete HTML string ready to be written to a file.
+    
+    Example usage:
+        html = render(open('post.md').read())
+        open('output.html', 'w').write(html)
+    """
     if css is None:
         css = read_stylsheet()
     config = load_config()
     
-     
     input_file_dir = None
     if input_file_path:
         input_file_dir = os.path.dirname(os.path.abspath(input_file_path))
@@ -231,7 +247,22 @@ def render(markdown_content, root_location="https://google.com", css=None, input
 
     return output_html
 
-def serve(output_html_path = '/generated.html', port = 6969, open_browser = True):
+def serve(output_html_path='/generated.html', port=6969, open_browser=True):
+    """
+    Start a local HTTP server to serve an HTML file.
+    
+    Args:
+        output_html_path: Path to the HTML file to serve (must start with /).
+        port: Port number for the server.
+        open_browser: Automatically open browser.
+    
+    Note:
+        The file must exist before calling serve(). This function serves
+        files from the current directory, not HTML content directly.
+    
+    Example:
+        serve('/output.html', port=8080)
+    """
     import http.server
     import webbrowser
 
@@ -381,6 +412,9 @@ def cli_main():
     """
     Main CLI interface for Not An SSG
     """
+    # Import version from package
+    from . import __version__
+    
     parser = argparse.ArgumentParser(
         prog='not_an_ssg',
         description="Not An SSG - This is not an SSG. It's a jackfruit",
@@ -408,10 +442,17 @@ Getting additional info on commands:
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
+    # Add version flag
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
+    
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # === RENDER COMMAND ===
-    render_parser = subparsers.add_parser('render', help='Render markdown file to HTML')
+    render_parser = subparsers.add_parser(
+        'render', 
+        help='Render markdown file to HTML',
+        description='Convert a markdown file to styled HTML. Example: not_an_ssg render blog.md -o blog.html'
+    )
     render_parser.add_argument('input', help='Input markdown file path')
     render_parser.add_argument('-o', '--output', default='generated.html',
                               help='Output HTML file path (default: generated.html)')
@@ -424,7 +465,11 @@ Getting additional info on commands:
                               help='Enable verbose output for debugging')
     
     # === SERVE COMMAND ===
-    serve_parser = subparsers.add_parser('serve', help='Start development server')
+    serve_parser = subparsers.add_parser(
+        'serve', 
+        help='Start development server',
+        description='Start a local HTTP server. Example: not_an_ssg serve -f /blog.html -p 8080'
+    )
     serve_parser.add_argument('-p', '--port', type=int, default=6969,
                              help='Server port (default: 6969)')
     serve_parser.add_argument('-f', '--file', default='/generated.html',
@@ -548,8 +593,19 @@ Getting additional info on commands:
 
 def handle_render_command(args):
     try:
+        # Import frontmatter module
+        from .frontmatter import open_article
+        
         with open(args.input, 'r', encoding='utf-8') as f:
             markdown_content = f.read()
+        
+        # Extract slug from frontmatter if output not explicitly specified
+        output_file = args.output
+        if args.output == 'generated.html':  # Default value, not user-specified
+            article = open_article(args.input)
+            output_file = f"{article.slug}.html"
+            if args.verbose:
+                print(f"Using slug from frontmatter: {article.slug}")
         
         css = None
         if args.css:
@@ -561,7 +617,7 @@ def handle_render_command(args):
                 sys.exit(1)
         
         if args.verbose:
-            print(f"Rendering {args.input} -> {args.output}")
+            print(f"Rendering {args.input} -> {output_file}")
             print(f"Root URL: {args.root}")
             if args.css:
                 print(f"Using custom CSS: {args.css}")
@@ -570,10 +626,10 @@ def handle_render_command(args):
         
         html_output = render(markdown_content, args.root, css, args.input, args.verbose)
         
-        with open(args.output, 'w', encoding='utf-8') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_output)
         
-        print(f"Successfully rendered {args.input} to {args.output}")
+        print(f"Successfully rendered {args.input} to {output_file}")
         
     except FileNotFoundError:
         print(f"Error: Input file '{args.input}' not found")
@@ -581,6 +637,7 @@ def handle_render_command(args):
     except Exception as e:
         print(f"Error rendering file: {e}")
         sys.exit(1)
+
 
 
 def handle_serve_command(args):
@@ -596,6 +653,15 @@ def handle_run_command(args):
     import time
     import threading
     from pathlib import Path
+    from .frontmatter import open_article
+    
+    # Determine output file based on slug if using default
+    output_file = args.output
+    if args.output == 'generated.html':  # Default value
+        article = open_article(args.input)
+        output_file = f"{article.slug}.html"
+        if args.verbose:
+            print(f"Using slug from frontmatter: {article.slug}")
     
     def render_file():
         try:
@@ -611,14 +677,14 @@ def handle_run_command(args):
                     print(f"Warning: CSS file '{args.css}' not found, using default")
             
             if args.verbose:
-                print(f"Rendering {args.input} -> {args.output}")
+                print(f"Rendering {args.input} -> {output_file}")
             
             html_output = render(markdown_content, args.root, css, args.input, args.verbose)
             
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(html_output)
             
-            print(f"Rendered {args.input} to {args.output}")
+            print(f"Rendered {args.input} to {output_file}")
             return True
             
         except FileNotFoundError:
@@ -674,9 +740,9 @@ def handle_run_command(args):
         sys.exit(1)
     
     try:
-        output_path = Path(args.output)
+        output_path = Path(output_file)
         if not output_path.exists() or output_path.stat().st_size == 0:
-            print(f"Error: Output file {args.output} is empty or doesn't exist")
+            print(f"Error: Output file {output_file} is empty or doesn't exist")
             sys.exit(1)
     except Exception as e:
         print(f"Error checking output file: {e}")
@@ -686,7 +752,7 @@ def handle_run_command(args):
         watcher_thread = threading.Thread(target=watch_file, daemon=True)
         watcher_thread.start()
     
-    server_file_path = f"/{args.output}" if not args.output.startswith('/') else args.output
+    server_file_path = f"/{output_file}" if not output_file.startswith('/') else output_file
     
     if args.verbose:
         print(f"Starting server on port {args.port}")
@@ -744,10 +810,16 @@ def handle_themes_command(args):
     
     elif args.theme_action == 'remove':
         try:
+            stylesheet_path = args.stylesheet
+            if stylesheet_path is None:
+                # Export default CSS first, then remove theme from it (creating a writable copy; refer to README: Breaking Changes[1])
+                stylesheet_path = export_default_css()
+                if args.verbose:
+                    print(f"Created {stylesheet_path} from package defaults")
             if args.verbose:
-                print(f"Removing theme from {args.stylesheet}")
-            remove_theme(args.stylesheet, verbose=args.verbose)
-            print("Successfully removed theme from stylesheet")
+                print(f"Removing theme from {stylesheet_path}")
+            remove_theme(stylesheet_path, verbose=args.verbose)
+            print(f"Successfully removed theme from {stylesheet_path}")
         except Exception as e:
             print(f"Error removing theme: {e}")
             sys.exit(1)

@@ -1,9 +1,9 @@
 [project]
-name = "not-an-ssg"
-version = "0.1.0"
-description = "Add your description here"
+name = "not_an_ssg"
+version = "2.0.0"
+description = "A minimal static site generator for technical blogs"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.8"
 dependencies = [
     "boto3>=1.37.10",
     "markdown>=3.7",

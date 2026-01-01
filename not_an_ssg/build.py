@@ -5,6 +5,7 @@ import hashlib
 from .r2_bucket import upload, get_bucket_contents
 from .not_an_ssg import render
 
+from .frontmatter import open_article
 
 #returning list of names of all articles in the articles directory orders with newest articles first
 def get_articles():
@@ -80,11 +81,15 @@ def build_html(article):
     with open(article, "r", encoding="utf-8") as file:
         article_data = file.read()
 
+    # use new frontmatter 
+    article = open_article(article)
+    article_data = article.contents
+    article_slug = article.slug
+
     html = render(article_data)
 
     #formatting from absolute path to just file name
-    article_name = article.split('/')[-1][:-3]
-    with open(f"templates/builds/{article_name}.html","w") as file:
+    with open(f"templates/builds/{article_slug}.html","w") as file:
         file.write(html)
 
 
