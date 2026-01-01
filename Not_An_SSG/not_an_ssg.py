@@ -11,7 +11,21 @@ from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from dotenv import load_dotenv
 
+# For accessing files bundled in the package such as css files
+try:
+    from importlib.resources import files as package_files
+except ImportError:
+    from importlib_resources import files as package_files # Fallback for older Python versions
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def get_package_resource(filename):
+    """
+    Get a resource file from the installed package.
+    This needs to be done to ensure compatibility, sometimes due to packaging we can't directly access files relatively.
+    """
+    return package_files('Not_An_SSG') / filename
 
 def verbose_decorator(func):
     def wrapper(*args, **kwargs):
