@@ -65,13 +65,14 @@ def load_config():
 
 
 def get_images_all(base_path=''):
-    # TODO: Write this more elegantly
+    """
+    Get all images from the templates/assets/img directory or from base_path if provided.
+    Returns a list of image file paths.
+    """
     if base_path:
         img_dir = os.path.join(base_path, "templates", "assets", "img")
-    elif os.path.exists(os.path.join(os.getcwd(), "templates", "assets", "img")):
-        img_dir = os.path.join(os.getcwd(), "templates", "assets", "img")
     else:
-        img_dir = os.path.join(SCRIPT_DIR, "templates", "assets", "img") #fallback
+        img_dir = os.path.join(os.getcwd(), "templates", "assets", "img")
     
     if not os.path.exists(img_dir):
         print(f"Image directory {img_dir} does not exist")
@@ -79,8 +80,8 @@ def get_images_all(base_path=''):
     
     try:
         with os.scandir(img_dir) as images:
-            list_with_posix_scan_iterator = list(images)
-            return [os.path.join(img_dir, image.name) for image in list_with_posix_scan_iterator if image.is_file()]
+            return [os.path.join(img_dir, image.name) for image in images if image.is_file()]
+
     except Exception as e:
         print(f"Error scanning image directory: {e}")
         return []
