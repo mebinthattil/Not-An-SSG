@@ -264,11 +264,20 @@ def generate_theme_css(theme_name='monokai', verbose = False):
     return pre_text + formatter.get_style_defs('.codehilite') + post_text
 
 def read_stylsheet(path_to_stylesheet=None, read_mode="read"):
-    if path_to_stylesheet is None:
-        path_to_stylesheet = os.path.join(SCRIPT_DIR, "articles_css.css")
-    with open(path_to_stylesheet, 'r') as file:
-        func = getattr(file, read_mode)
-        return func()
+    """
+    Read a stylesheet file. 
+    If path_to_stylesheet is None -> read the default CSS from the package.
+    Else, read from file path.
+    """
+    if path_to_stylesheet is None: # Use default package css
+        resource = get_package_resource("articles_css.css")
+        with resource.open('r') as file:
+            func = getattr(file, read_mode)
+            return func()
+    else: # Read from given stylesheet path
+        with open(path_to_stylesheet, 'r') as file:
+            func = getattr(file, read_mode)
+            return func()
 
 def write_stylsheet(css_content, path_to_stylesheet=None, write_mode="write") -> None:
     if path_to_stylesheet is None:
