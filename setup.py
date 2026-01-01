@@ -24,6 +24,7 @@ setup(
         "markdown>=3.7",
         "pygments>=2.18.0",
         "python-dotenv>=1.1.1",
+        "PyYAML>=6.0",
         "importlib-resources>=1.3.0;python_version<'3.9'"],
     entry_points={
         'console_scripts': [

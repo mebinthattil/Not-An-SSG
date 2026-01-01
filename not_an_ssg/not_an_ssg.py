@@ -412,6 +412,9 @@ def cli_main():
     """
     Main CLI interface for Not An SSG
     """
+    # Import version from package
+    from . import __version__
+    
     parser = argparse.ArgumentParser(
         prog='not_an_ssg',
         description="Not An SSG - This is not an SSG. It's a jackfruit",
@@ -438,6 +441,9 @@ Getting additional info on commands:
         ''',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    
+    # Add version flag
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
@@ -587,8 +593,19 @@ Getting additional info on commands:
 
 def handle_render_command(args):
     try:
+        # Import frontmatter module
+        from .frontmatter import open_article
+        
         with open(args.input, 'r', encoding='utf-8') as f:
             markdown_content = f.read()
+        
+        # Extract slug from frontmatter if output not explicitly specified
+        output_file = args.output
+        if args.output == 'generated.html':  # Default value, not user-specified
+            article = open_article(args.input)
+            output_file = f"{article.slug}.html"
+            if args.verbose:
+                print(f"Using slug from frontmatter: {article.slug}")
         
         css = None
         if args.css:
@@ -600,7 +617,7 @@ def handle_render_command(args):
                 sys.exit(1)
         
         if args.verbose:
-            print(f"Rendering {args.input} -> {args.output}")
+            print(f"Rendering {args.input} -> {output_file}")
             print(f"Root URL: {args.root}")
             if args.css:
                 print(f"Using custom CSS: {args.css}")
@@ -609,10 +626,10 @@ def handle_render_command(args):
         
         html_output = render(markdown_content, args.root, css, args.input, args.verbose)
         
-        with open(args.output, 'w', encoding='utf-8') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_output)
         
-        print(f"Successfully rendered {args.input} to {args.output}")
+        print(f"Successfully rendered {args.input} to {output_file}")
         
     except FileNotFoundError:
         print(f"Error: Input file '{args.input}' not found")
@@ -620,6 +637,7 @@ def handle_render_command(args):
     except Exception as e:
         print(f"Error rendering file: {e}")
         sys.exit(1)
+
 
 
 def handle_serve_command(args):
@@ -635,6 +653,15 @@ def handle_run_command(args):
     import time
     import threading
     from pathlib import Path
+    from .frontmatter import open_article
+    
+    # Determine output file based on slug if using default
+    output_file = args.output
+    if args.output == 'generated.html':  # Default value
+        article = open_article(args.input)
+        output_file = f"{article.slug}.html"
+        if args.verbose:
+            print(f"Using slug from frontmatter: {article.slug}")
     
     def render_file():
         try:
@@ -650,14 +677,14 @@ def handle_run_command(args):
                     print(f"Warning: CSS file '{args.css}' not found, using default")
             
             if args.verbose:
-                print(f"Rendering {args.input} -> {args.output}")
+                print(f"Rendering {args.input} -> {output_file}")
             
             html_output = render(markdown_content, args.root, css, args.input, args.verbose)
             
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(html_output)
             
-            print(f"Rendered {args.input} to {args.output}")
+            print(f"Rendered {args.input} to {output_file}")
             return True
             
         except FileNotFoundError:
@@ -713,9 +740,9 @@ def handle_run_command(args):
         sys.exit(1)
     
     try:
-        output_path = Path(args.output)
+        output_path = Path(output_file)
         if not output_path.exists() or output_path.stat().st_size == 0:
-            print(f"Error: Output file {args.output} is empty or doesn't exist")
+            print(f"Error: Output file {output_file} is empty or doesn't exist")
             sys.exit(1)
     except Exception as e:
         print(f"Error checking output file: {e}")
@@ -725,7 +752,7 @@ def handle_run_command(args):
         watcher_thread = threading.Thread(target=watch_file, daemon=True)
         watcher_thread.start()
     
-    server_file_path = f"/{args.output}" if not args.output.startswith('/') else args.output
+    server_file_path = f"/{output_file}" if not output_file.startswith('/') else output_file
     
     if args.verbose:
         print(f"Starting server on port {args.port}")

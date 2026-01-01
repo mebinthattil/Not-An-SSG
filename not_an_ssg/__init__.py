@@ -32,6 +32,8 @@ from .not_an_ssg import (
     load_config,
     get_package_resource )
 from .r2_bucket import upload, get_bucket_contents
+from . import frontmatter
+from . import build
 
 __version__ = "2.0.0"
 __all__ = [
@@ -52,4 +54,6 @@ __all__ = [
     "get_bucket_contents",
     "load_config",
     "get_package_resource",
+    "frontmatter",
+    "build",
 ]

@@ -350,18 +350,23 @@ from not_an_ssg import (
     generate_theme_css, 
     set_theme,
     get_images_all,
-    image_name_cleanup
+    image_name_cleanup,
+    export_default_css
 )
+
+# Export default CSS to create a writable copy (V2.0.0+)
+css_file = export_default_css('my_custom.css')
+print(f"Exported CSS to: {css_file}")
 
 # Custom CSS with theme
 custom_css = generate_theme_css('github-dark')
-set_theme(custom_css, 'github-dark')
+set_theme(css_file, 'github-dark')  # Now modifies the exported file
 
 # Render with custom options
 html = render(
     markdown_content,
     root_location="https://yourblog.com",
-    css=custom_css,
+    css=css_file,  # Use the exported CSS file path
     input_file_path="blog-post.md",
     verbose=True
 )
@@ -371,6 +376,35 @@ images = get_images_all('/path/to/project')
 image_name_cleanup('/path/to/project')
 
 ```
+
+### Working with Themes (V2.0.0+)
+
+```python
+from not_an_ssg import export_default_css, generate_theme_css, set_theme
+
+# Step 1: Export the default CSS to a writable location
+css_path = export_default_css('articles_css.css')
+
+# Step 2: Apply a theme to the exported CSS
+set_theme(css_path, 'monokai')
+
+# Step 3: Use the themed CSS for rendering
+from not_an_ssg import render
+
+with open('blog.md', 'r') as f:
+    content = f.read()
+
+html = render(
+    content,
+    css=css_path,
+    input_file_path='blog.md',
+    root_location='https://myblog.com'
+)
+
+with open('output.html', 'w') as f:
+    f.write(html)
+```
+
 
 ## Markdown Features
 

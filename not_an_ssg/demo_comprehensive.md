@@ -1,3 +1,13 @@
+---
+title: "Somewhat Modern Technical Blog Theme Demo"
+date: "2026-01-24"
+description: "This is a comprehensive demonstration of the modern, minimal dark theme designed for technical blogs. The theme features a clean design with excellent syntax highlighting and typography."
+tags: ["blog", "theme", "dark", "modern", "technical"]
+last_modified: "2026-01-24"
+published: true
+layout: "post"
+---
+
 # Somewhat Modern Technical Blog Theme Demo
 
 This is a comprehensive demonstration of the modern, minimal dark theme designed for technical blogs. The theme features a clean design with excellent syntax highlighting and typography.
