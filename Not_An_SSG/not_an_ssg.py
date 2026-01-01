@@ -44,21 +44,22 @@ def verbose_decorator(func):
 # === HANDLE IMAGES ===
 
 def load_config():
+    """
+    Load configuration from .env and config.json in the current working directory.
+    
+    Uses defaults if files don't exist (no fallback to package directory).
+    """
     load_dotenv('.env')
-    load_dotenv(os.path.join(SCRIPT_DIR, '.env')) #fallback only, actually might remove, need to check how it works after distribution as wheel
     
-    config = {}
-    config_path = 'config.json'
-    if not os.path.exists(config_path):
-        config_path = os.path.join(SCRIPT_DIR, 'config.json') #fallback
+    config = {"image_dimensions": {"width": 800, "height": 500}}
     
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-
-    except FileNotFoundError:
-        print("Warning: config.json not found. Using default image dimensions. This usually means you have not ran the setup script. Please run setup.py.")
-        config = {"image_dimensions": {"width": 800, "height": 500}}
+    if os.path.exists('config.json'): # Try to load from CWD
+        try:
+            with open('config.json', 'r') as f:
+                user_config = json.load(f)
+                config.update(user_config) # Merging this with config dict
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Could not load config.json: {e}")
     
     return config
 
