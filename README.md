@@ -489,7 +489,13 @@ Contributions welcome! This project was built for personal use but has evolved t
 ### `write_stylesheet(css_content, path_to_stylesheet, write_mode)`:
 `path_to_stylesheet` can no longer take `None` value. `path_to_stylesheet` is required and the default css cannot be used since package resources are read only.
 ### Fix:
-Use export_default_css() to create a writable copy of the default CSS first.
+Use export_default_css() to create a writable copy of the default CSS first. 
+
+### Remove `files_to_copy`, `files_exist()`, `_setup_user_files()`
+### Fix:
+No fix required, the functions within NAS should continue to work via imports, but these functions
+explicitly will no longer work if used anywhere.
+
 
 
 ## Plans for next release

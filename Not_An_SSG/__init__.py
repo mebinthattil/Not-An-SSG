@@ -1,75 +1,55 @@
-import os, sys
+"""
+Not An SSG - A minimal static site generator for technical blogs.
 
-files_to_copy = [
-    'config.json',
-    'articles_css.css',
-    'setup.py',
-    'ui_components.py',
-    'r2_bucket.py',
-    'not_an_ssg.py'
-]
+This package provides:
+- render(): Convert Markdown to styled HTML
+- serve(): Start a development server
+- cli_main(): CLI interface (also available as 'not_an_ssg' command)
+- Theme management functions
+- Image upload to S3/R2 compatible storage
 
-def files_exist():
-    for file in files_to_copy:
-        if not os.path.exists(file):
-            return False
-    return True
+Example usage:
+    from not_an_ssg import render, serve
+    
+    html = render(markdown_content)
+    serve('/output.html')
+"""
 
-def _setup_user_files():
-    """Copy necessary files from package to user's working directory if they don't exist"""
-    try:
-        try:
-            from importlib.resources import files
-        except ImportError:
-                return #TODO
-        
-        package_files = files('Not_An_SSG')
-        
-        for filename in files_to_copy:
-            if not os.path.exists(filename):
-                try:
-                    source_file = package_files / filename
-                    if source_file.exists():
-                        with source_file.open('rb') as src:
-                            with open(filename, 'wb') as dst:
-                                dst.write(src.read())
-                except Exception:
-                    pass # TODO
-        
-        if not os.path.exists('templates'):
-            try:
-                templates_dir = package_files / 'templates'
-                if templates_dir.exists():
-                    os.makedirs('templates/assets/img', exist_ok=True)
-                    
-                    for item in templates_dir.rglob('*'):
-                        if item.is_file():
-                            relative_path = item.relative_to(templates_dir)
-                            
-                            # skip imgs in assets/img
-                            if 'assets/img' in str(relative_path):
-                                continue
-                                
-                            dest_path = os.path.join('templates', str(relative_path))
-                            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-                            with item.open('rb') as src:
-                                with open(dest_path, 'wb') as dst:
-                                    dst.write(src.read())
-            except Exception:
-                pass # TODO
-                
-    except Exception:
-        pass # TODO
-
-
-if not files_exist():
-    consent = input("Not An SSG works best when all the files are present in the directory you want to host your webserver in. Do you consent to cloning source code to your PWD? [y/n]: ")
-    if consent.lower() == "y":
-        _setup_user_files()
-    else:
-        print("Exiting")
-        sys.exit(1)
-
-
-from .not_an_ssg import render, serve, cli_main, generate_theme_css, read_stylsheet, write_stylsheet, set_theme, remove_theme, list_themes, images_to_upload, image_name_cleanup, load_config, verbose_decorator
+from .not_an_ssg import (
+    render,
+    serve,
+    cli_main,
+    generate_theme_css,
+    read_stylsheet,
+    write_stylsheet,
+    set_theme,
+    remove_theme,
+    list_themes,
+    export_default_css,
+    images_to_upload,
+    image_name_cleanup,
+    get_images_all,
+    load_config,
+    get_package_resource )
 from .r2_bucket import upload, get_bucket_contents
+
+__version__ = "0.2.0"
+__all__ = [
+    "render",
+    "serve",
+    "cli_main",
+    "generate_theme_css",
+    "read_stylsheet",
+    "write_stylsheet",
+    "set_theme",
+    "remove_theme",
+    "list_themes",
+    "export_default_css",
+    "images_to_upload",
+    "image_name_cleanup",
+    "get_images_all",
+    "upload",
+    "get_bucket_contents",
+    "load_config",
+    "get_package_resource",
+]
