@@ -13,6 +13,7 @@ This evolved out of a basic SSG I wrote to power my own [website](https://mebin.
 - **Fast & Lightweight**: Decently performant, yet to benchmark. But don't use this if you want the fastest SSG
 - **Beautiful Themes**: Modern dark theme optimized for technical content, try `not_an_ssg themes list`
 - **Rich Markdown Support**: Tables, code blocks, math expressions and more
+- **Frontmatter Support**: YAML frontmatter for metadata
 - **Image Handling**: Smart optimizations, CDN integration and cloud uploads
 - **CLI + Imports**: CLI tools, Python API, and extensive customization options
 - **Responsive Design**: Works on mobile devices (yet to extensively test, but typography should be better)
@@ -64,7 +65,7 @@ not_an_ssg render input.md [options]
 ```
 
 **Options:**
-- `-o, --output FILE`: Output HTML file (default: generated.html)
+- `-o, --output FILE`: Output HTML file (default: uses slug from frontmatter or auto-generates from filename)
 - `-c, --css FILE`: Custom CSS file path
 - `-r, --root URL`: Root URL for home button (default: https://google.com)
 - `--no-images`: Skip image processing and uploading
@@ -74,6 +75,7 @@ not_an_ssg render input.md [options]
 ```bash
 # Basic rendering
 not_an_ssg render blog-post.md
+# Output: blog-post.html (or custom slug if specified in frontmatter)
 
 # Custom output file and CSS
 not_an_ssg render blog-post.md -o index.html -c custom.css
@@ -84,6 +86,8 @@ not_an_ssg render blog-post.md --no-images
 # Verbose output for debugging
 not_an_ssg render blog-post.md -v
 ```
+
+> **Note**: By default, the output filename is determined by the `slug` field in your markdown's frontmatter. If no slug is specified, it's auto-generated from the filename.
 
 #### `serve` - Start Development Server
 ```bash
@@ -406,6 +410,79 @@ with open('output.html', 'w') as f:
 ```
 
 
+## Frontmatter Support
+
+Not-An-SSG supports YAML frontmatter for metadata and controlling output behavior. Frontmatter is optional but provides powerful features like custom slugs and metadata.
+
+### Supported Fields
+
+```yaml
+---
+title: "Your Article Title"           # Article title (optional, defaults to filename)
+slug: "custom-url-slug"               # Output filename slug (optional, auto-generated if not specified)
+author: "Author Name"                 # Article author (optional)
+description: "Article description"    # Meta description (optional)
+publish_date: "2026-01-24"           # Publication date (optional, defaults to current date)
+tags: ["tag1", "tag2"]               # Article tags (optional)
+last_modified: "2026-01-24"          # Last modification date (optional)
+layout: "post"                       # Layout type (optional)
+published: true                      # Publication status (optional)
+---
+```
+
+### Slug-Based Output
+
+The `slug` field controls the output HTML filename:
+
+```markdown
+---
+slug: my-awesome-post
+---
+
+# My Awesome Post
+```
+
+**Output:** `my-awesome-post.html`
+
+If no slug is specified, it's auto-generated from the filename:
+- `my article.md` → `my-article.html`
+- `What's New?.md` → `What's-New?.html`
+
+### Complete Example
+
+```markdown
+---
+title: "Getting Started with Not-An-SSG"
+slug: getting-started
+author: "John Doe"
+description: "A comprehensive guide to using Not-An-SSG for your blog"
+publish_date: "2026-01-24"
+tags: ["tutorial", "ssg", "markdown"]
+published: true
+---
+
+# Heading 1
+
+lmao lmao lmao
+```
+
+### Using Frontmatter Programmatically
+
+```python
+from not_an_ssg.frontmatter import open_article
+
+# Parse markdown with frontmatter
+article = open_article('blog-post.md')
+
+# Access frontmatter fields
+print(article.title)         # "Getting Started with Not-An-SSG"
+print(article.slug)          # "getting-started"
+print(article.author)        # "John Doe"
+print(article.tags)          # ["tutorial", "ssg", "markdown"]
+print(article.contents)      # Markdown content without frontmatter
+```
+
+
 ## Markdown Features
 
 ### Code Blocks with Syntax Highlighting
@@ -514,6 +591,11 @@ MIT License - see LICENSE file for details.
 Contributions welcome! This project was built for personal use but has evolved to make it public. You can find the repo [here](https://github.com/mebinthattil/Not-An-SSG).
 
 ## Changelog
+
+### v2.1.0
+- **New**: YAML frontmatter support with metadata fields
+- **New**: Slug-based output filenames from frontmatter
+- **New**: Auto-generated slugs from filenames when not specified
 
 ### v2.0.0
 - **Breaking**: Complete re-architecture for proper Python packaging

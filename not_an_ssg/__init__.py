@@ -35,7 +35,7 @@ from .r2_bucket import upload, get_bucket_contents
 from . import frontmatter
 from . import build
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __all__ = [
     "render",
     "serve",
