@@ -482,9 +482,9 @@ title: "Your Article Title"           # Article title (optional, defaults to fil
 slug: "custom-url-slug"               # Output filename slug (optional, auto-generated if not specified)
 author: "Author Name"                 # Article author (optional)
 description: "Article description"    # Meta description (optional)
-publish_date: "2026-01-24"           # Publication date (optional, defaults to current date)
+publish_date: "24-01-2026"           # Publication date (optional, defaults to current date)
 tags: ["tag1", "tag2"]               # Article tags (optional)
-last_modified: "2026-01-24"          # Last modification date (optional)
+last_modified: "24-01-2026"          # Last modification date (optional)
 layout: "post"                       # Layout type (optional)
 published: true                      # Publication status (optional)
 ---
@@ -516,7 +516,7 @@ title: "Getting Started with Not-An-SSG"
 slug: getting-started
 author: "John Doe"
 description: "A comprehensive guide to using Not-An-SSG for your blog"
-publish_date: "2026-01-24"
+publish_date: "24-01-2026"
 tags: ["tutorial", "ssg", "markdown"]
 published: true
 ---

@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name='not_an_ssg',
-    version='2.1.0',
+    version='2.2.1',
     author='Mebin',
     author_email='mail@mebin.in',
     url='https://github.com/mebinthattil/Not-An-SSG',

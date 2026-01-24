@@ -1,9 +1,9 @@
 ---
 title: "Somewhat Modern Technical Blog Theme Demo"
-date: "2026-01-24"
+date: "24-01-2026"
 description: "This is a comprehensive demonstration of the modern, minimal dark theme designed for technical blogs. The theme features a clean design with excellent syntax highlighting and typography."
 tags: ["blog", "theme", "dark", "modern", "technical"]
-last_modified: "2026-01-24"
+last_modified: "24-01-2026"
 published: true
 layout: "post"
 ---
@@ -179,8 +179,8 @@ build_theme() {
     cat > $BUILD_DIR/manifest.json << EOF
 {
   "name": "$theme",
-  "version": "$(date +%Y%m%d)",
-  "build_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  "version": "$(date +%d%m%Y)",
+  "build_time": "$(date -u +%d-%m-%YT%H:%M:%SZ)"
 }
 EOF
     

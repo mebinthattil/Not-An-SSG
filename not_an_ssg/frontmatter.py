@@ -33,7 +33,7 @@ def open_article(article_path):
             self.title = self.frontmatter.get("title", self.file_base_name)
             self.author = self.frontmatter.get("author")
             self.description = self.frontmatter.get("description")
-            self.publish_date = self.frontmatter.get("publish_date", datetime.now().strftime("%Y-%m-%d"))
+            self.publish_date = self.frontmatter.get("publish_date", datetime.now().strftime("%d-%m-%Y"))
             self.tags = self.frontmatter.get("tags")
             self.slug = self.frontmatter.get("slug", self.file_base_name.replace(" ", "-"))
             self.last_modified = self.frontmatter.get("last_modified")
