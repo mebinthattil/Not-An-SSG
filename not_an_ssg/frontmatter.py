@@ -21,9 +21,11 @@ def open_article(article_path):
             self.raw_contents = open(article_path, "r").read().strip()
 
             if self.raw_contents.startswith("---"):
-                parts = self.raw_contents.split("---")
+                import re
+                # Split only on --- at start of line (not inside tables)
+                parts = re.split(r'^---\s*$', self.raw_contents, maxsplit=2, flags=re.MULTILINE)
                 # parts[0] is empty, parts[1] is frontmatter, parts[2] is content
-                frontmatter_raw = parts[1]
+                frontmatter_raw = parts[1] if len(parts) > 1 else ""
                 self.contents = parts[2].strip() if len(parts) > 2 else ""
                 self.frontmatter = yaml.safe_load(frontmatter_raw)
             else: # No frontmatter found

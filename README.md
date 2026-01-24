@@ -652,6 +652,12 @@ Contributions welcome! This project was built for personal use but has evolved t
 
 ## Changelog
 
+### v2.2.3
+- **Bug Fix**: Fixed frontmatter parsing where markdown tables with dashed lines were incorrectly causing issues.
+
+### v2.2.2
+- **Bug Fix**: Fixed `image_name_cleanup` function which was incorrectly modifying directory paths instead of just filenames.
+
 ### v2.2.0
 - **New**: Batch building with `not_an_ssg build` CLI command
 - **New**: `build()` SDK function for single file building
