@@ -1,23 +1,28 @@
+"""
+Batch building module
+
+Provides incremental building with hash-based change detection:
+- Only rebuilds files that have changed
+- Stores hashes in .not_an_ssg_hashes.json in the input directory
+- Supports force rebuild to ignore hashes
+"""
+
 import os
 import json
 import hashlib
+from typing import Optional
 
-from .r2_bucket import upload, get_bucket_contents
 from .not_an_ssg import render
-
 from .frontmatter import open_article
 
-#returning list of names of all articles in the articles directory orders with newest articles first
-def get_articles():
-    with os.scandir("articles/markdown_files") as articles:
-        list_with_posix_scan_iterator =  [article for article in articles if article.name[-3:] == ".md"]
-        list_with_posix_scan_iterator.sort(key = lambda x: x.stat().st_ctime, reverse=True)
-        articles_list = [article.name for article in list_with_posix_scan_iterator]
-        if ".obsidian" in articles_list:
-            articles_list.remove(".obsidian")
-        return articles_list
-    
-def get_file_hash(filepath):
+
+HASH_TRACKER_FILENAME = ".not_an_ssg_hashes.json"
+
+
+def get_file_hash(filepath: str) -> Optional[str]:
+    """
+    Compute SHA-256 hash of a file.
+    """
     hasher = hashlib.sha256()
     try:
         with open(filepath, "rb") as f:
@@ -27,101 +32,223 @@ def get_file_hash(filepath):
         return None
     return hasher.hexdigest()
 
-def prev_hash(prev_file_name):
-    with open("hash_tracker.json", "r") as f:
-        data = json.load(f)
-        return data.get(prev_file_name)
 
-def detect_file_changes(filename): #return false if NO changes in file
-    return get_file_hash(filename) != prev_hash(filename)
-
-def update_hash(filename):
-    new_hash = get_file_hash(filename)
-    with open("hash_tracker.json","r") as f: #load
-        json_data = json.load(f)
-    json_data[filename] = new_hash #update
-    with open("hash_tracker.json","w") as f: #dump
-        json.dump(json_data,f)
-
-def get_images(relative_path = ""):
-    with os.scandir(relative_path+"templates/assets/img") as images:
-        list_with_posix_scan_iterator =  list(images)
-        return [relative_path+'templates/assets/img/'+(image.name) for image in list_with_posix_scan_iterator] 
-
-def cleanup_image_names(relative_path = ""):
-    for image in get_images():
-        if " "in image:
-            os.rename(relative_path+image, (relative_path+image).replace(" ","_"))
-        if "\u202f" in image:
-            os.rename(relative_path+image, (relative_path+image).replace("\u202f","_"))
-
-def images_to_upload():
-    prev_bucket_contents = ['templates/assets/img/'+ image_name for image_name in get_bucket_contents()]
-    list_of_all_images = get_images()
-    images_not_in_bucket = [image for image in list_of_all_images if image not in prev_bucket_contents]
-    if "templates/assets/img/.DS_Store" in images_not_in_bucket: #removing .DS_Store from the list
-        images_not_in_bucket.remove("templates/assets/img/.DS_Store")
-    return (images_not_in_bucket)
-
-def markdowns_to_rebuild():
-    '''Iterating through each article in the markdown_files folder and checking for any hash changes'''
-
-    list_of_articles_to_rebuild = []
-    list_of_articles = get_articles()
-    for article in list_of_articles:
-        article = "articles/markdown_files/"+article
-        if detect_file_changes(article):
-            list_of_articles_to_rebuild.append(article)
-            update_hash(article)
-
-    return(list_of_articles_to_rebuild)
+def load_hash_tracker(tracker_path: str) -> dict:
+    if not os.path.exists(tracker_path):
+        return {}
+    try:
+        with open(tracker_path, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {}
 
 
-def build_html(article):
-    with open(article, "r", encoding="utf-8") as file:
-        article_data = file.read()
-
-    # use new frontmatter 
-    article = open_article(article)
-    article_data = article.contents
-    article_slug = article.slug
-
-    html = render(article_data)
-
-    #formatting from absolute path to just file name
-    with open(f"templates/builds/{article_slug}.html","w") as file:
-        file.write(html)
+def save_hash_tracker(tracker_path: str, hashes: dict) -> None:
+    os.makedirs(os.path.dirname(tracker_path) or ".", exist_ok=True)
+    with open(tracker_path, "w") as f:
+        json.dump(hashes, f, indent=2)
 
 
-'''Main Build Function'''
-def build():
+def detect_file_changes(filepath: str, hashes: dict) -> bool:
+    current_hash = get_file_hash(filepath)
+    if current_hash is None:
+        return False  # File doesn't exist
     
-    #cleaning up image names
-    cleanup_image_names()
+    # Use filename as key
+    key = os.path.basename(filepath)
+    stored_hash = hashes.get(key)
+    
+    return current_hash != stored_hash
 
-    #uploading images
-    for image in images_to_upload():
-        print(f"Uploading -> {image} right now\n\n")
-        upload(image)
+
+def update_hash(filepath: str, hashes: dict) -> dict:
+
+    current_hash = get_file_hash(filepath)
+    if current_hash:
+        key = os.path.basename(filepath)
+        hashes[key] = current_hash
+    return hashes
+
+
+def get_markdown_files(input_dir: str, extensions: list = ['.md']) -> list:
+    """
+    Get all markdown files from a directory.
+    
+    Args:
+        input_dir: Directory to search
+        extensions: List of file extensions to include (default: ['.md']) This is so that any other file types can be included later.
         
-    #building html files
-    for markdown in markdowns_to_rebuild():
-        print(f"Building -> {markdown} right now\n\n")
-        build_html(markdown)
-
+    Returns:
+        List of *absolute file paths*, sorted by modification time (newest first)
+    """
+    if not os.path.exists(input_dir):
+        return []
     
+    files = []
+    try:
+        with os.scandir(input_dir) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    _, ext = os.path.splitext(entry.name)
+                    if ext.lower() in extensions:
+                        files.append(entry)
+        
+        # Sort by modification time, newest first
+        files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+        return [os.path.abspath(f.path) for f in files]
+    except Exception as e:
+        print(f"Error scanning directory {input_dir}: {e}")
+        return []
 
-    print("Done with all builds and uploads")
 
-def build_n_upload_images_only():
-    #cleaning up image names
-    cleanup_image_names()
+def get_files_to_rebuild(input_dir: str, tracker_path: str = None, force: bool = False) -> list:
 
-    #uploading images
-    for image in images_to_upload():
-        print(f"Uploading -> {image} right now\n\n")
-        upload(image)
+    if tracker_path is None:
+        tracker_path = os.path.join(input_dir, HASH_TRACKER_FILENAME)
+    
+    all_files = get_markdown_files(input_dir)
+    
+    if force: # Ignore cache, rebuild all.
+        return all_files
+    
+    hashes = load_hash_tracker(tracker_path)
+    return [f for f in all_files if detect_file_changes(f, hashes)]
+
+
+def build(
+    input_path: str,
+    output_dir: str = "./output",
+    root_location: str = "https://google.com",
+    css: str = None,
+    verbose: bool = False
+) -> dict:
+    """
+    Build a single file        
+    Returns:
+        Dictionary with build result: {"success": bool, "output_path": str, "error": str or None}
+    """
+    try:
+        # Parse frontmatter for slug
+        article = open_article(input_path)
+        output_filename = f"{article.slug}.html"
+        output_path = os.path.join(output_dir, output_filename)
+        
+        html = render(
+            article.contents,
+            root_location=root_location,
+            css=css,
+            input_file_path=input_path,
+            verbose=verbose
+        )
+        
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html)
+        
+        if verbose:
+            print(f"Built: {input_path} -> {output_path}")
+        
+        return {"success": True, "output_path": output_path, "error": None}
+        
+    except Exception as e:
+        error_msg = str(e)
+        if verbose:
+            print(f"Error building {input_path}: {error_msg}")
+        return {"success": False, "output_path": None, "error": error_msg}
+
+
+def build_directory(
+    input_dir: str = "./articles",
+    output_dir: str = "./output",
+    tracker_path: str = None,
+    force_rebuild: bool = False,
+    root_location: str = "https://google.com",
+    css: str = None,
+    verbose: bool = False
+) -> dict:
+    """
+    Build all *changed* markdown files in a directory.
+    
+    Uses hash-based change detection to only rebuild modified files.
+    Hash tracker is stored as .not_an_ssg_hashes.json in the input directory.
+    
+    Args:
+        input_dir: Directory containing markdown files (default: ./articles)
+        output_dir: Directory to write HTML output (default: ./output)
+        tracker_path: Custom path for hash tracker (default: input_dir/.not_an_ssg_hashes.json)
+        force_rebuild: If True, rebuild all files ignoring hashes
+        root_location: URL for the home button
+        css: Optional custom CSS string
+        verbose: Enable verbose output
+        
+    Returns:
+        Dictionary with build results:
+        {
+            "built": [list of successfully built file paths],
+            "skipped": [list of unchanged file paths],
+            "errors": [{"file": path, "error": message}, ...]
+        }
+    """
+    # Set default tracker path
+    if tracker_path is None:
+        tracker_path = os.path.join(input_dir, HASH_TRACKER_FILENAME)
+    
+    # Validate input directory
+    if not os.path.exists(input_dir):
+        return {"built": [], "skipped": [], "errors": [{"file": input_dir, "error": "Input directory does not exist"}]}
+    
+    hashes = load_hash_tracker(tracker_path)
+    all_files = get_markdown_files(input_dir)
+    
+    if verbose:
+        print(f"Found {len(all_files)} markdown file(s) in {input_dir}")
+    
+    # Determine which files need building
+    if force_rebuild:
+        files_to_build = all_files
+        files_to_skip = []
+        if verbose:
+            print("Force rebuild enabled - building all files")
+    else:
+        files_to_build = [f for f in all_files if detect_file_changes(f, hashes)]
+        files_to_skip = [f for f in all_files if f not in files_to_build]
+    
+    if verbose:
+        print(f"Files to build: {len(files_to_build)}")
+        print(f"Files to skip: {len(files_to_skip)}")
+    
+    built = []
+    errors = []
+    
+    for filepath in files_to_build:
+        result = build(filepath, output_dir, root_location=root_location, css=css, verbose=verbose)
+        
+        if result["success"]:
+            built.append(filepath)
+            update_hash(filepath, hashes)
+        else:
+            errors.append({"file": filepath, "error": result["error"]})
+    
+    if built:
+        save_hash_tracker(tracker_path, hashes)
+        if verbose:
+            print(f"Updated hash tracker: {tracker_path}")
+
+    if verbose:
+        print(f"\n=== Build Summary ===")
+        print(f"Built: {len(built)} file(s)")
+        print(f"Skipped: {len(files_to_skip)} file(s)")
+        if errors:
+            print(f"Errors: {len(errors)} file(s)")
+    
+    return {
+        "built": built,
+        "skipped": files_to_skip,
+        "errors": errors
+    }
 
 
 if __name__ == "__main__":
-    build()
+    build_directory(verbose=True)

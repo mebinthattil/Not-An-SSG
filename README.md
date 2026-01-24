@@ -14,6 +14,7 @@ This evolved out of a basic SSG I wrote to power my own [website](https://mebin.
 - **Beautiful Themes**: Modern dark theme optimized for technical content, try `not_an_ssg themes list`
 - **Rich Markdown Support**: Tables, code blocks, math expressions and more
 - **Frontmatter Support**: YAML frontmatter for metadata
+- **Batch Building**: Builds with hash-based caching to prevent unnecessary rebuilds (v2.2.0+)
 - **Image Handling**: Smart optimizations, CDN integration and cloud uploads
 - **CLI + Imports**: CLI tools, Python API, and extensive customization options
 - **Responsive Design**: Works on mobile devices (yet to extensively test, but typography should be better)
@@ -136,6 +137,39 @@ not_an_ssg run blog-post.md -p 8080 --watch
 # Verbose mode for debugging
 not_an_ssg run blog-post.md -v --watch
 ```
+
+#### `build` - Batch Build Directory (v2.2.0+)
+```bash
+not_an_ssg build [input_dir] [options]
+```
+
+Build all markdown files in a directory with incremental hash-based caching.
+
+**Options:**
+- `input_dir`: Input directory (default: ./articles)
+- `-o, --output DIR`: Output directory (default: ./output)
+- `-f, --force`: Force rebuild all files (ignore hash cache)
+- `--hash-file FILE`: Custom path for hash tracker JSON
+- `-c, --css FILE`: Custom CSS file path
+- `-r, --root URL`: Root URL for home button
+- `-v, --verbose`: Enable verbose output
+
+**Examples:**
+```bash
+# Build with defaults (./articles -> ./output)
+not_an_ssg build
+
+# Custom directories
+not_an_ssg build ./content -o ./public
+
+# Force rebuild all files
+not_an_ssg build ./articles -o ./output --force
+
+# Verbose output
+not_an_ssg build ./articles -o ./output -v
+```
+
+> **Note**: Hashes are stored in `.not_an_ssg_hashes.json` in the input directory. Only changed files are rebuilt on subsequent runs.
 
 ### Theme Management
 
@@ -409,6 +443,32 @@ with open('output.html', 'w') as f:
     f.write(html)
 ```
 
+### Batch Building (v2.2.0+)
+
+```python
+from not_an_ssg import build, build_directory
+
+# Build a single file
+result = build('./article.md', './output')
+print(f"Built: {result['output_path']}")
+
+# Build all files in a directory (incremental)
+result = build_directory('./articles', './output')
+print(f"Built: {len(result['built'])} files")
+print(f"Skipped: {len(result['skipped'])} files")
+
+# Force rebuild all files
+result = build_directory('./articles', './output', force_rebuild=True)
+
+# With custom options
+result = build_directory(
+    input_dir='./content',
+    output_dir='./public',
+    root_location='https://myblog.com',
+    verbose=True
+)
+```
+
 
 ## Frontmatter Support
 
@@ -592,6 +652,14 @@ Contributions welcome! This project was built for personal use but has evolved t
 
 ## Changelog
 
+### v2.2.0
+- **New**: Batch building with `not_an_ssg build` CLI command
+- **New**: `build()` SDK function for single file building
+- **New**: `build_directory()` SDK function for batch building with hash caching
+- **New**: Incremental builds - only changed files are rebuilt
+- **New**: `--force` flag to rebuild all files ignoring cache
+- **Breaking**: `build.py` module completely refactored (see Breaking Changes)
+
 ### v2.1.0
 - **New**: YAML frontmatter support with metadata fields
 - **New**: Slug-based output filenames from frontmatter
@@ -649,7 +717,24 @@ not_an_ssg themes list
 echo "# Test" > test.md && not_an_ssg render test.md
 ```
 
-## Plans for Next Release
-- Support a batch rendering mode
-- Introduce file hashing to prevent unnecessary re-renders
+## Breaking Changes (v2.2.0)
 
+### `build` module refactored
+The old `build.py` with hardcoded paths has been completely refactored:
+
+| Old Function | New Function | Notes |
+|--------------|--------------|-------|
+| `build()` | `build()` | Now builds a single file, returns result dict |
+| `markdowns_to_rebuild()` | `get_files_to_rebuild()` | Configurable paths |
+| N/A | `build_directory()` | **New**: Batch build with hash caching |
+
+**New usage:**
+```python
+# Single file
+from not_an_ssg import build
+result = build('./article.md', './output')
+
+# Batch directory
+from not_an_ssg import build_directory
+result = build_directory('./articles', './output')
+```

@@ -423,6 +423,9 @@ Examples:
   %(prog)s render my_article.md                           # Render markdown to HTML
   %(prog)s render my_article.md --output blog.html        # Render with custom output
   %(prog)s render my_article.md -v                        # Render with verbose output
+  %(prog)s build ./articles -o ./public                   # Build directory (incremental)
+  %(prog)s build ./articles -o ./public --force           # Force rebuild all files
+  %(prog)s build -v                                       # Build with defaults and verbose
   %(prog)s serve --port 8080                              # Start server on port 8080
   %(prog)s serve -v                                       # Start server with verbose output
   %(prog)s run my_article.md                              # Render and serve in one command
@@ -435,6 +438,7 @@ Examples:
 
 Getting additional info on commands:
   %(prog)s render -h                                      # Show help for render command
+  %(prog)s build -h                                       # Show help for build command
   %(prog)s serve -h                                       # Show help for serve command
   %(prog)s run -h                                         # Show all options for run command
   %(prog)s themes list -h                                 # Show help for themes list subcommand
@@ -568,6 +572,36 @@ Getting additional info on commands:
     upload_images_parser.add_argument('-v', '--verbose', action='store_true',
                                      help='Enable verbose output for debugging')
     
+    # === BUILD COMMAND ===
+    build_parser = subparsers.add_parser(
+        'build',
+        help='Build all markdown files in a directory (incremental)',
+        description='''Build all markdown files in a directory to HTML.
+        
+Uses hash-based change detection to only rebuild modified files.
+Hash tracker is stored as .not_an_ssg_hashes.json in the input directory.
+
+Examples:
+  not_an_ssg build ./articles -o ./public           # Build with defaults
+  not_an_ssg build ./articles -o ./public --force   # Force rebuild all
+  not_an_ssg build                                  # Use default directories
+''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    build_parser.add_argument('input_dir', nargs='?', default='./articles',
+                             help='Input directory containing markdown files (default: ./articles)')
+    build_parser.add_argument('-o', '--output', default='./output',
+                             help='Output directory for HTML files (default: ./output)')
+    build_parser.add_argument('-f', '--force', action='store_true',
+                             help='Force rebuild all files (ignore hash cache)')
+    build_parser.add_argument('--hash-file',
+                             help='Custom path for hash tracker JSON (default: input_dir/.not_an_ssg_hashes.json)')
+    build_parser.add_argument('-c', '--css', help='Custom CSS file path')
+    build_parser.add_argument('-r', '--root', default='https://mebin.in',
+                             help='Root URL for the return home button (default: https://mebin.in)')
+    build_parser.add_argument('-v', '--verbose', action='store_true',
+                             help='Enable verbose output for debugging')
+    
     args = parser.parse_args()
     
     # Handle no command
@@ -589,6 +623,8 @@ Getting additional info on commands:
         handle_config_command(args)
     elif args.command == 'images':
         handle_images_command(args)
+    elif args.command == 'build':
+        handle_build_command(args)
 
 
 def handle_render_command(args):
@@ -902,5 +938,55 @@ def handle_images_command(args):
             print("No new images to upload - all images already in bucket")
 
 
+def handle_build_command(args):
+    """Handle the build command for batch building directories."""
+    from .build import build_directory
+    
+    # Load custom CSS if provided
+    css = None
+    if args.css:
+        try:
+            with open(args.css, 'r', encoding='utf-8') as f:
+                css = f.read()
+        except FileNotFoundError:
+            print(f"Error: CSS file '{args.css}' not found")
+            sys.exit(1)
+    
+    if args.verbose:
+        print(f"Building directory: {args.input_dir}")
+        print(f"Output directory: {args.output}")
+        if args.force:
+            print("Force rebuild enabled - rebuilding all files")
+        if args.hash_file:
+            print(f"Using custom hash file: {args.hash_file}")
+    
+    try:
+        result = build_directory(
+            input_dir=args.input_dir,
+            output_dir=args.output,
+            tracker_path=args.hash_file,
+            force_rebuild=args.force,
+            root_location=args.root,
+            css=css,
+            verbose=args.verbose
+        )
+        
+        # Print summary
+        print(f"\n=== Build Complete ===")
+        print(f"Built: {len(result['built'])} file(s)")
+        print(f"Skipped (unchanged): {len(result['skipped'])} file(s)")
+        
+        if result['errors']:
+            print(f"Errors: {len(result['errors'])} file(s)")
+            for err in result['errors']:
+                print(f"  - {err['file']}: {err['error']}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"Error during build: {e}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli_main()
+
