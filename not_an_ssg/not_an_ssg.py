@@ -91,11 +91,18 @@ def image_name_cleanup(base_path=''):
     try:
         for image in get_images_all(base_path):
             weird_chars = [" ", "\u202f", "%20"]
+            dir_path = os.path.dirname(image)
+            filename = os.path.basename(image)
+            new_filename = filename
+            
             for char in weird_chars:
-                if char in image:
-                    old_path = image
-                    new_path = image.replace(char, "_")
-                    os.rename(old_path, new_path)
+                if char in new_filename:
+                    new_filename = new_filename.replace(char, "_")
+            
+            if new_filename != filename:
+                old_path = image
+                new_path = os.path.join(dir_path, new_filename)
+                os.rename(old_path, new_path)
     except Exception as e:
         print(f"Error during image cleanup: {e}")
 
