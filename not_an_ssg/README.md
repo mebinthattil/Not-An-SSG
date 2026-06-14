@@ -69,6 +69,7 @@ not_an_ssg render input.md [options]
 - `-c, --css FILE`: Custom CSS file path
 - `-r, --root URL`: Root URL for home button (default: https://google.com)
 - `--no-images`: Skip image processing and uploading
+- `--image-path PATH`: Path to image directory. Overrides `image_path` in `config.json` and the default `templates/assets/img`
 - `-v, --verbose`: Enable verbose output
 
 **Examples:**
@@ -79,6 +80,9 @@ not_an_ssg render blog-post.md
 
 # Custom output file and CSS
 not_an_ssg render blog-post.md -o index.html -c custom.css
+
+# Use a custom image directory
+not_an_ssg render blog-post.md --image-path ./my-images
 
 # Skip image processing
 not_an_ssg render blog-post.md --no-images
@@ -124,6 +128,7 @@ not_an_ssg run input.md [options]
 - All `serve` options &
 - `--watch`: Watch for file changes and auto-rebuild
 - `--watch-interval SECONDS`: Watch interval (default: 1.0)
+- `--image-path PATH`: Path to image directory (overrides `config.json` and default)
 
 **Examples:**
 ```bash
@@ -132,6 +137,9 @@ not_an_ssg run blog-post.md --watch
 
 # Custom port with file watching
 not_an_ssg run blog-post.md -p 8080 --watch
+
+# Use a custom image directory
+not_an_ssg run blog-post.md --image-path ./my-images --watch
 
 # Verbose mode for debugging
 not_an_ssg run blog-post.md -v --watch
@@ -151,6 +159,7 @@ Build all markdown files in a directory with incremental hash-based caching.
 - `--hash-file FILE`: Custom path for hash tracker JSON
 - `-c, --css FILE`: Custom CSS file path
 - `-r, --root URL`: Root URL for home button
+- `--image-path PATH`: Path to image directory (overrides `config.json` and default)
 - `-v, --verbose`: Enable verbose output
 
 **Examples:**
@@ -163,6 +172,9 @@ not_an_ssg build ./content -o ./public
 
 # Force rebuild all files
 not_an_ssg build ./articles -o ./output --force
+
+# Use a custom image directory
+not_an_ssg build ./articles -o ./output --image-path ./my-images
 
 # Verbose output
 not_an_ssg build ./articles -o ./output -v
@@ -248,42 +260,54 @@ not_an_ssg config setup
 ```bash
 not_an_ssg images list [options]
 
-# List all images in project
+# List all images in project (default templates/assets/img)
 not_an_ssg images list
 
-# List images in specific path with verbose output
+# List images in a specific directory
+not_an_ssg images list --image-path ./photos
+
+# List images in specific base path with verbose output
 not_an_ssg images list -p ./v_secret_folder
 ```
 
 **Options:**
-- `-p, --path PATH`: Search path (default: current directory)
+- `-p, --path PATH`: Base project root to search under (default: current directory)
+- `--image-path PATH`: Direct path to image directory (takes priority over `-p`, `config.json`, and default)
 - `-v, --verbose`: Enable verbose output
 
 #### `images clean` - Clean Image Filenames
 ```bash
 not_an_ssg images clean [options]
 
-# Clean image names in current directory
+# Clean image names in default directory
 not_an_ssg images clean
+
+# Clean a specific image directory
+not_an_ssg images clean --image-path ./photos -v
 
 # Clean specific path with verbose output
 not_an_ssg images clean -p ./assets -v
 ```
 
 **Options:**
-- `-p, --path PATH`: Path to clean (default: current directory)
+- `-p, --path PATH`: Base path to clean (default: current directory)
+- `--image-path PATH`: Direct path to image directory (takes priority over `-p`, `config.json`, and default)
 - `-v, --verbose`: Enable verbose output
 
 #### `images upload` - Upload Images to Cloud Storage
 ```bash
-# Upload all images to configured bucket
+# Upload all images to configured bucket (default directory)
 not_an_ssg images upload
+
+# Upload from a custom directory
+not_an_ssg images upload --image-path ./photos
 
 # Upload with verbose output
 not_an_ssg images upload -v
 ```
 
 **Options:**
+- `--image-path PATH`: Direct path to image directory (overrides `config.json` and default)
 - `-v, --verbose`: Enable verbose output (highly reccomend using this)
 
 ### Common Options
@@ -297,9 +321,9 @@ not_an_ssg images upload -v
 your-blog/
 ├── templates/
 │   └── assets/
-│       └── img/          # Images (auto-uploaded to CDN during render, unless specified otherwise)
+│       └── img/          # Default image directory (auto-uploaded to CDN during render)
 ├── .env                  # Environment configuration (auto genned by config setup - this is for storage buckets)
-├── config.json           # Project configuration (right now only for default image dimensions)
+├── config.json           # Project configuration (image dimensions, custom image path, etc.)
 ├── articles_css.css      # Main stylesheet (has all the styling and the theme - themes are swappable and auto-generated)
 ├── your-post.md          # Your markdown files (can be renamed)
 └── generated.html        # Generated output (can be renamed)
@@ -339,7 +363,7 @@ CDN_URL=https://your-cdn.com
 
 ### Project Configuration (config.json)
 
-The setup wizard also creates this file with default settings:
+The setup wizard creates this file with default settings:
 
 ```json
 {
@@ -349,6 +373,23 @@ The setup wizard also creates this file with default settings:
   }
 }
 ```
+
+You can also add an `image_path` key to point to an arbitrary image directory instead of the default `templates/assets/img`:
+
+```json
+{
+  "image_dimensions": {
+    "width": 800,
+    "height": 500
+  },
+  "image_path": "/absolute/or/relative/path/to/images"
+}
+```
+
+**Image path resolution priority** (highest to lowest):
+1. `--image-path` CLI flag (per-command override)
+2. `image_path` key in `config.json` (project-wide)
+3. Default: `templates/assets/img` relative to project root
 
 You can modify these values manually if needed, or re-run `not_an_ssg config setup` to change them interactively.
 
@@ -412,6 +453,10 @@ html = render(
 images = get_images_all('/path/to/project')
 image_name_cleanup('/path/to/project')
 
+# Use a custom image directory
+from not_an_ssg import get_images_all
+images = get_images_all(image_path='/my/custom/images')
+
 ```
 
 ### Working with Themes (V2.0.0+)
@@ -464,8 +509,33 @@ result = build_directory(
     input_dir='./content',
     output_dir='./public',
     root_location='https://myblog.com',
+    image_path='./my-images',   # custom image directory
     verbose=True
 )
+```
+
+### Custom Image Directory (v2.2.4+)
+
+You can point image processing at any arbitrary directory via:
+
+**Python API:**
+```python
+html = render(markdown_content, image_path='/path/to/images')
+result = build('./article.md', './output', image_path='./photos')
+result = build_directory('./articles', './output', image_path='./photos')
+```
+
+**CLI flag (all commands):**
+```bash
+not_an_ssg render post.md --image-path ./photos
+not_an_ssg run post.md --image-path ./photos
+not_an_ssg build ./articles --image-path ./photos
+not_an_ssg images upload --image-path ./photos
+```
+
+**config.json (project-wide):**
+```json
+{ "image_path": "./photos" }
 ```
 
 
@@ -530,7 +600,9 @@ not_an_ssg run blog.md -c custom.css
 
 ### Cloud Storage Integration
 
-You are expected to place all you images under `templates/assets/img/`. Then, the following features become available:
+By default, images are sourced from `templates/assets/img/`. You can override this with `--image-path`, `config.json`, or the Python API (see [Custom Image Directory](#custom-image-directory-v224) above).
+
+Once the image directory is resolved, the following features become available:
 1. Cleaned filename (removes whitespaces and weird characters)
 2. Uploaded to your configured cloud storage
 3. Replaced img src with CDN URLs in the final HTML
@@ -546,7 +618,7 @@ not_an_ssg run blog.md -v
 
 ### Common Issues
 
-1. **Images not displaying**: Ensure images are in `templates/assets/img/` directory and you've run `not_an_ssg config setup`
+1. **Images not displaying**: Ensure images are in the configured directory (default: `templates/assets/img/`) and you've run `not_an_ssg config setup`
 2. **CDN not working**: Run `not_an_ssg config setup` to configure cloud storage settings
 3. **Themes not applying**: Run `not_an_ssg themes set THEME_NAME`
 4. **Port already in use**: Use `-p` to specify a different port. Only applicable while using `serve`
@@ -577,6 +649,12 @@ MIT License - see LICENSE file for details.
 Contributions welcome! This project was built for personal use but has evolved to make it public. You can find the repo [here](https://github.com/mebinthattil/Not-An-SSG).
 
 ## Changelog
+
+### v2.2.4
+- **New**: Configurable image directory — set `image_path` in `config.json` or pass `--image-path` on any CLI command (`render`, `run`, `build`, `images list/clean/upload`)
+- **New**: `resolve_image_dir()` helper exported from the package
+- **New**: `image_path` parameter added to `render()`, `build()`, and `build_directory()` Python APIs
+- Priority: CLI flag > `config.json` key > legacy default (`templates/assets/img`)
 
 ### v2.2.0
 - **New**: Batch building with `not_an_ssg build` CLI command
@@ -646,3 +724,28 @@ result = build('./article.md', './output')
 from not_an_ssg import build_directory
 result = build_directory('./articles', './output')
 ```
+`````
+This is the description of what the code block changes:
+<changeDescription>
+Add the list of frontmatter keys to the README file.
+</changeDescription>
+
+This is the code block that represents the suggested code change:
+```markdown
+## Frontmatter Keys
+
+The frontmatter can have the following keys:
+
+- title
+- author
+- description
+- publish_date
+- tags
+- slug
+- last_modified
+- layout
+- published
+```
+<userPrompt>
+Provide the fully rewritten file, incorporating the suggested code change. You must produce the complete file.
+</userPrompt>

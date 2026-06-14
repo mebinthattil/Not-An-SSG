@@ -48,6 +48,12 @@ def load_config():
     Load configuration from .env and config.json in the current working directory.
     
     Uses defaults if files don't exist (no fallback to package directory).
+    
+    Supported config.json keys:
+        image_dimensions: {"width": int, "height": int}
+        image_path: str  # Absolute or relative path to the image directory.
+                         # Relative paths are resolved from the CWD.
+                         # Defaults to templates/assets/img inside the project root.
     """
     load_dotenv('.env')
     
@@ -64,15 +70,52 @@ def load_config():
     return config
 
 
-def get_images_all(base_path=''):
+def resolve_image_dir(base_path='', image_path=None):
     """
-    Get all images from the templates/assets/img directory or from base_path if provided.
-    Returns a list of image file paths.
+    Resolve the effective image directory.
+
+    Priority (highest to lowest):
+      1. Explicit ``image_path`` argument (absolute or relative to CWD).
+      2. ``image_path`` key in config.json (absolute or relative to CWD).
+      3. Legacy default: <base_path or CWD>/templates/assets/img
+
+    Args:
+        base_path:   Project root directory (used only for the legacy default).
+        image_path:  Caller-supplied override (e.g. from a CLI flag).
+
+    Returns:
+        Absolute path string of the resolved image directory.
     """
-    if base_path:
-        img_dir = os.path.join(base_path, "templates", "assets", "img")
-    else:
-        img_dir = os.path.join(os.getcwd(), "templates", "assets", "img")
+    if image_path:
+        return os.path.abspath(image_path)
+
+    config = load_config()
+    config_image_path = config.get('image_path')
+    if config_image_path:
+        return os.path.abspath(config_image_path)
+
+    # Legacy default
+    root = base_path if base_path else os.getcwd()
+    return os.path.join(root, "templates", "assets", "img")
+
+
+def get_images_all(base_path='', image_path=None):
+    """
+    Get all images from the configured image directory.
+
+    The effective directory is resolved via ``resolve_image_dir``:
+      1. Explicit ``image_path`` argument.
+      2. ``image_path`` key in config.json.
+      3. Legacy default: <base_path or CWD>/templates/assets/img
+
+    Args:
+        base_path:   Project root (used only for the legacy default).
+        image_path:  Direct path to the image directory (overrides config / default).
+
+    Returns:
+        List of absolute image file paths.
+    """
+    img_dir = resolve_image_dir(base_path, image_path)
     
     if not os.path.exists(img_dir):
         print(f"Image directory {img_dir} does not exist")
@@ -87,9 +130,17 @@ def get_images_all(base_path=''):
         return []
 
 
-def image_name_cleanup(base_path=''):
+def image_name_cleanup(base_path='', image_path=None):
+    """
+    Rename images in the configured directory, replacing spaces and special
+    characters with underscores.
+
+    Args:
+        base_path:   Project root (used only for the legacy default location).
+        image_path:  Direct path to the image directory (overrides config / default).
+    """
     try:
-        for image in get_images_all(base_path):
+        for image in get_images_all(base_path, image_path):
             weird_chars = [" ", "\u202f", "%20"]
             dir_path = os.path.dirname(image)
             filename = os.path.basename(image)
@@ -107,9 +158,14 @@ def image_name_cleanup(base_path=''):
         print(f"Error during image cleanup: {e}")
 
 
-def images_to_upload(base_path=''):
+def images_to_upload(base_path='', image_path=None):
     """
-    Determine which images need to be uploaded to the bucket, skip images that are already in the bucket and bs like .DS_Store
+    Determine which images need to be uploaded to the bucket.
+    Skips images already in the bucket and hidden files (e.g. .DS_Store).
+
+    Args:
+        base_path:   Project root (used only for the legacy default location).
+        image_path:  Direct path to the image directory (overrides config / default).
     """
     try:
         if SCRIPT_DIR not in sys.path:
@@ -119,16 +175,16 @@ def images_to_upload(base_path=''):
         if bucket_contents is None:
             bucket_contents = []
         
-        list_of_all_images = get_images_all(base_path)
+        list_of_all_images = get_images_all(base_path, image_path)
         
         images_not_in_bucket = []
-        for image_path in list_of_all_images:
-            filename = os.path.basename(image_path)
+        for img_path in list_of_all_images:
+            filename = os.path.basename(img_path)
             if filename.startswith('.'):
                 continue
                 
             if filename not in bucket_contents:
-                images_not_in_bucket.append(image_path)
+                images_not_in_bucket.append(img_path)
         
         return images_not_in_bucket
         
@@ -141,11 +197,13 @@ def images_to_upload(base_path=''):
 
 
 class DefaultImageSizeProcessor(Treeprocessor):
-    def __init__(self, md, config=None, input_file_dir=None, verbose=False):
+    def __init__(self, md, config=None, input_file_dir=None, verbose=False, image_path=None):
         super().__init__(md)
         self.config = config or {"image_dimensions": {"width": 800, "height": 500}}
         self.input_file_dir = input_file_dir or os.getcwd()
         self.verbose = verbose
+        # image_path from CLI/caller takes priority; fall back to config key.
+        self.image_path = image_path or self.config.get('image_path') or None
     
     def run(self, root):
         load_dotenv('.env')
@@ -153,9 +211,11 @@ class DefaultImageSizeProcessor(Treeprocessor):
         
         if self.verbose:
             print("STARTING, SCRIPT IS RUNNING FROM : ", os.getcwd())
+            if self.image_path:
+                print(f"Using custom image path: {self.image_path}")
         
         for img in root.iter('img'):
-            image_name_cleanup(self.input_file_dir)
+            image_name_cleanup(self.input_file_dir, self.image_path)
             
             bucket_name = os.getenv('STORAGE_BUCKET_NAME')
             if bucket_name:
@@ -164,7 +224,7 @@ class DefaultImageSizeProcessor(Treeprocessor):
                     if SCRIPT_DIR not in sys.path:
                         sys.path.insert(0, SCRIPT_DIR)
 
-                    images_to_upload_list = images_to_upload(self.input_file_dir)
+                    images_to_upload_list = images_to_upload(self.input_file_dir, self.image_path)
                     if self.verbose:
                         if images_to_upload_list:
                             print(f"Found {len(images_to_upload_list)} new images to upload")
@@ -204,20 +264,21 @@ class DefaultImageSizeProcessor(Treeprocessor):
 
 
 class DefaultImageSizeExtension(Extension):
-    def __init__(self, config=None, input_file_dir=None, verbose=False, **kwargs):
+    def __init__(self, config=None, input_file_dir=None, verbose=False, image_path=None, **kwargs):
         self.config = config
         self.input_file_dir = input_file_dir
         self.verbose = verbose
+        self.image_path = image_path
         super().__init__(**kwargs)
     
     def extendMarkdown(self, md):
-        processor = DefaultImageSizeProcessor(md, self.config, self.input_file_dir, self.verbose)
+        processor = DefaultImageSizeProcessor(md, self.config, self.input_file_dir, self.verbose, self.image_path)
         md.treeprocessors.register(processor, 'default_image_size', 15)
 
 
 # === RENDER & SERVE ===
 
-def render(markdown_content, root_location="https://google.com", css=None, input_file_path=None, verbose=False):
+def render(markdown_content, root_location="https://google.com", css=None, input_file_path=None, verbose=False, image_path=None):
     """
     Convert markdown content to styled HTML.
     
@@ -227,6 +288,9 @@ def render(markdown_content, root_location="https://google.com", css=None, input
         css: Optional custom CSS string. Uses package default if None.
         input_file_path: Path to source file (for relative image paths).
         verbose: Enable verbose output.
+        image_path: Optional path to the image directory. When provided, overrides
+                    the ``image_path`` key in config.json and the default
+                    ``templates/assets/img`` location.
     
     Returns:
         Complete HTML string ready to be written to a file.
@@ -245,7 +309,7 @@ def render(markdown_content, root_location="https://google.com", css=None, input
     
     output_html = ui_components.html_header_with_stylesheet(css)
 
-    extensions = ['fenced_code', 'codehilite', 'nl2br', 'tables', 'attr_list', DefaultImageSizeExtension(config, input_file_dir, verbose)]
+    extensions = ['fenced_code', 'codehilite', 'nl2br', 'tables', 'attr_list', DefaultImageSizeExtension(config, input_file_dir, verbose, image_path)]
     
     output_html += markdown.markdown(markdown_content, extensions=extensions)
 
@@ -430,14 +494,19 @@ Examples:
   %(prog)s render my_article.md                           # Render markdown to HTML
   %(prog)s render my_article.md --output blog.html        # Render with custom output
   %(prog)s render my_article.md -v                        # Render with verbose output
+  %(prog)s render my_article.md --image-path ./img        # Use custom image directory
   %(prog)s build ./articles -o ./public                   # Build directory (incremental)
   %(prog)s build ./articles -o ./public --force           # Force rebuild all files
+  %(prog)s build ./articles --image-path /abs/path/imgs   # Build with custom image dir
   %(prog)s build -v                                       # Build with defaults and verbose
   %(prog)s serve --port 8080                              # Start server on port 8080
   %(prog)s serve -v                                       # Start server with verbose output
   %(prog)s run my_article.md                              # Render and serve in one command
   %(prog)s run my_article.md --watch                      # Render, serve, and watch for changes
+  %(prog)s run my_article.md --image-path ./img --watch   # Custom image dir + watch
   %(prog)s run my_article.md --port 8080 --watch -v       # Custom port with file watching and verbose
+  %(prog)s images list --image-path ./photos              # List images in a custom directory
+  %(prog)s images upload --image-path ./photos            # Upload from a custom directory
   %(prog)s themes list                                    # List available themes
   %(prog)s themes set monokai -v                          # Set syntax highlighting theme with verbose
   %(prog)s themes generate dracula --output dark.css      # Generate theme CSS
@@ -472,6 +541,8 @@ Getting additional info on commands:
                               help='Root URL for the return home button (default: https://mebin.in)')
     render_parser.add_argument('--no-images', action='store_true',
                               help='Skip image processing and uploading')
+    render_parser.add_argument('--image-path', default=None, dest='image_path',
+                              help='Path to image directory (overrides config.json image_path and the default templates/assets/img)')
     render_parser.add_argument('-v', '--verbose', action='store_true',
                               help='Enable verbose output for debugging')
     
@@ -504,6 +575,8 @@ Getting additional info on commands:
                            help="Don't automatically open browser")
     run_parser.add_argument('--no-images', action='store_true',
                            help='Skip image processing and uploading')
+    run_parser.add_argument('--image-path', default=None, dest='image_path',
+                           help='Path to image directory (overrides config.json image_path and the default templates/assets/img)')
     run_parser.add_argument('--watch', action='store_true',
                            help='Watch markdown file for changes and auto-rebuild')
     run_parser.add_argument('--watch-interval', type=float, default=1.0,
@@ -563,19 +636,27 @@ Getting additional info on commands:
     # List images
     list_images_parser = images_subparsers.add_parser('list', help='List all images in project')
     list_images_parser.add_argument('-p', '--path', default='',
-                                   help='Relative path to search (default: current directory)')
+                                   help='Base path to search (default: current directory)')
+    list_images_parser.add_argument('--image-path', default=None, dest='image_path',
+                                   help='Direct path to image directory (overrides --path, config.json image_path, and the default templates/assets/img)')
     list_images_parser.add_argument('-v', '--verbose', action='store_true',
                                    help='Enable verbose output for debugging')
     
     # Clean image names
     clean_images_parser = images_subparsers.add_parser('clean', help='Clean up image file names')
     clean_images_parser.add_argument('-p', '--path', default='',
-                                    help='Relative path to clean (default: current directory)')
+                                    help='Base path to clean (default: current directory)')
+    clean_images_parser.add_argument('--image-path', default=None, dest='image_path',
+                                    help='Direct path to image directory (overrides --path, config.json image_path, and the default templates/assets/img)')
     clean_images_parser.add_argument('-v', '--verbose', action='store_true',
                                     help='Enable verbose output for debugging')
     
     # Upload images
     upload_images_parser = images_subparsers.add_parser('upload', help='Upload images to bucket')
+    upload_images_parser.add_argument('-p', '--path', default='',
+                                     help='Base path to search (default: current directory)')
+    upload_images_parser.add_argument('--image-path', default=None, dest='image_path',
+                                     help='Direct path to image directory (overrides --path, config.json image_path, and the default templates/assets/img)')
     upload_images_parser.add_argument('-v', '--verbose', action='store_true',
                                      help='Enable verbose output for debugging')
     
@@ -606,6 +687,8 @@ Examples:
     build_parser.add_argument('-c', '--css', help='Custom CSS file path')
     build_parser.add_argument('-r', '--root', default='https://mebin.in',
                              help='Root URL for the return home button (default: https://mebin.in)')
+    build_parser.add_argument('--image-path', default=None, dest='image_path',
+                             help='Path to image directory (overrides config.json image_path and the default templates/assets/img)')
     build_parser.add_argument('-v', '--verbose', action='store_true',
                              help='Enable verbose output for debugging')
     
@@ -666,8 +749,10 @@ def handle_render_command(args):
                 print(f"Using custom CSS: {args.css}")
             if args.no_images:
                 print("Skipping image processing")
+            if args.image_path:
+                print(f"Using custom image path: {args.image_path}")
         
-        html_output = render(markdown_content, args.root, css, args.input, args.verbose)
+        html_output = render(markdown_content, args.root, css, args.input, args.verbose, image_path=args.image_path)
         
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_output)
@@ -721,8 +806,10 @@ def handle_run_command(args):
             
             if args.verbose:
                 print(f"Rendering {args.input} -> {output_file}")
+                if args.image_path:
+                    print(f"Using custom image path: {args.image_path}")
             
-            html_output = render(markdown_content, args.root, css, args.input, args.verbose)
+            html_output = render(markdown_content, args.root, css, args.input, args.verbose, image_path=args.image_path)
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(html_output)
@@ -913,26 +1000,29 @@ def handle_images_command(args):
         print("Error: No images action specified. Use 'list', 'clean', or 'upload'")
         sys.exit(1)
     
+    image_path = getattr(args, 'image_path', None)
+
     if args.images_action == 'list':
-        images = get_images_all(args.path)
+        images = get_images_all(args.path, image_path)
+        display_loc = image_path or args.path or 'current directory'
         if images:
-            print(f"Images found in '{args.path or 'current directory'}':")
+            print(f"Images found in '{display_loc}':")
             for i, img in enumerate(images, 1):
                 print(f"  {i:2d}. {img}")
             print(f"\nTotal: {len(images)} images")
         else:
-            print(f"No images found in '{args.path or 'current directory'}'")
+            print(f"No images found in '{display_loc}'")
     
     elif args.images_action == 'clean':
         if args.verbose:
-            print(f"Cleaning image names in '{args.path or 'current directory'}'")
-        image_name_cleanup(args.path)
+            print(f"Cleaning image names in '{image_path or args.path or 'current directory'}'")
+        image_name_cleanup(args.path, image_path)
         print("Image name cleanup completed")
     
     elif args.images_action == 'upload':
         if SCRIPT_DIR not in sys.path:
             sys.path.insert(0, SCRIPT_DIR)
-        images = images_to_upload('')
+        images = images_to_upload(getattr(args, 'path', ''), image_path)
         if images:
             if args.verbose:
                 print(f"Uploading {len(images)} new images to bucket...")
@@ -966,6 +1056,8 @@ def handle_build_command(args):
             print("Force rebuild enabled - rebuilding all files")
         if args.hash_file:
             print(f"Using custom hash file: {args.hash_file}")
+        if args.image_path:
+            print(f"Using custom image path: {args.image_path}")
     
     try:
         result = build_directory(
@@ -975,7 +1067,8 @@ def handle_build_command(args):
             force_rebuild=args.force,
             root_location=args.root,
             css=css,
-            verbose=args.verbose
+            verbose=args.verbose,
+            image_path=args.image_path
         )
         
         # Print summary

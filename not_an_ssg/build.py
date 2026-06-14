@@ -120,7 +120,8 @@ def build(
     output_dir: str = "./output",
     root_location: str = "https://google.com",
     css: str = None,
-    verbose: bool = False
+    verbose: bool = False,
+    image_path: str = None
 ) -> dict:
     """
     Build a single file        
@@ -138,7 +139,8 @@ def build(
             root_location=root_location,
             css=css,
             input_file_path=input_path,
-            verbose=verbose
+            verbose=verbose,
+            image_path=image_path
         )
         
         # Ensure output directory exists
@@ -166,7 +168,8 @@ def build_directory(
     force_rebuild: bool = False,
     root_location: str = "https://google.com",
     css: str = None,
-    verbose: bool = False
+    verbose: bool = False,
+    image_path: str = None
 ) -> dict:
     """
     Build all *changed* markdown files in a directory.
@@ -182,6 +185,8 @@ def build_directory(
         root_location: URL for the home button
         css: Optional custom CSS string
         verbose: Enable verbose output
+        image_path: Optional path to image directory. Overrides config.json image_path
+                    and the default templates/assets/img location.
         
     Returns:
         Dictionary with build results:
@@ -223,7 +228,7 @@ def build_directory(
     errors = []
     
     for filepath in files_to_build:
-        result = build(filepath, output_dir, root_location=root_location, css=css, verbose=verbose)
+        result = build(filepath, output_dir, root_location=root_location, css=css, verbose=verbose, image_path=image_path)
         
         if result["success"]:
             built.append(filepath)

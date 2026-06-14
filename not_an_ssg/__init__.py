@@ -39,6 +39,7 @@ from .not_an_ssg import (
     images_to_upload,
     image_name_cleanup,
     get_images_all,
+    resolve_image_dir,
     load_config,
     get_package_resource )
 from .r2_bucket import upload, get_bucket_contents
@@ -54,7 +55,7 @@ from .build import (
     save_hash_tracker,
 )
 
-__version__ = "2.2.3"
+__version__ = "2.2.4"
 __all__ = [
     "render",
     "serve",
@@ -69,6 +70,7 @@ __all__ = [
     "images_to_upload",
     "image_name_cleanup",
     "get_images_all",
+    "resolve_image_dir",
     "upload",
     "get_bucket_contents",
     "load_config",
